@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from azure.identity import DefaultAzureCredential
 from azure.ai.projects import AIProjectClient
 from azure.ai.agents.models import FunctionTool
-from jira import JiraAPI
+from jira.JiraAPI import JiraAPI
 print("Starting create_agent.py")
 print("loading env vars")
 # Load environment variables
