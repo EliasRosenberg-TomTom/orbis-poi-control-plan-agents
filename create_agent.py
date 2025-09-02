@@ -6,6 +6,7 @@ from azure.identity import DefaultAzureCredential
 from azure.ai.projects import AIProjectClient
 from azure.ai.agents.models import FunctionTool
 from jira.JiraAPI import JiraAPI
+from github.GithubAPI import GithubAPI
 print("Starting create_agent.py")
 print("loading env vars")
 # Load environment variables
@@ -23,6 +24,16 @@ def get_jira_ticket_description(issue_id_or_key: str) -> str:
     """
     jira = JiraAPI()
     return jira.get_ticket_description(issue_id_or_key)
+
+def get_pull_request_body(pr_id: str) -> str:
+    """
+    Fetches the body of a pull request by its pr issue number.
+
+    :param pr_id: The pull request ID (e.g., '123').
+    :return: The pull request body as a string.
+    """
+    gh = GithubAPI()
+    return gh.get_pull_request_body(pr_id)
 
 # Define user functions
 user_functions = {get_jira_ticket_description}
