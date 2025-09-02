@@ -97,8 +97,8 @@ with project_client:
                     )
 
             # Fetch and print the latest assistant message
-            messages = project_client.agents.messages.list(thread_id=thread.id)
-            for message in reversed(messages):
+            messages = list(project_client.agents.messages.list(thread_id=thread.id))
+            for message in messages:
                 if message.role == "assistant" and message.text_messages:
                     print(f"Agent: {message.text_messages[-1].text.value}")
                     break
