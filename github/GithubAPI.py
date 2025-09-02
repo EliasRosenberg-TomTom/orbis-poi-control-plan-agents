@@ -14,7 +14,8 @@ class GithubAPI:
 
         self.headers = {
             "Authorization": f"Bearer {self.token}",
-            "Accept": "application/vnd.github.v3+json"
+            "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28"
         }
 
     def get_pull_request_body(self, pr_number):
