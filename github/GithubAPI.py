@@ -25,3 +25,16 @@ class GithubAPI:
             return response.json().get("body", "No body found")
         else:
             return f'Error: {response.status_code} - {response.text}'
+
+    def get_control_plan_metrics_from_pr_comment(self, pr_number):
+        url = f"{self.base_url}/pulls/{pr_number}/comments"
+        response = requests.get(url, headers=self.headers)
+        if response.status_code == 200:
+            comments = response.json()
+            for comment in comments:
+                body = comment.get("body", "")
+                if "Control Plan Report" in body:
+                    return body
+            return "No Control Plan Report found in comments"
+        else:
+            return f'Error: {response.status_code} - {response.text}'

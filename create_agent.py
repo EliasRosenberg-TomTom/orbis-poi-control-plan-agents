@@ -4,6 +4,7 @@ from azure.ai.projects import AIProjectClient
 from azure.ai.agents.models import FunctionTool
 from jira.JiraAPI import JiraAPI
 from github.GithubAPI import GithubAPI
+from agent_conf.AgentConf import AgentConf
 import os
 import json
 import time
@@ -12,6 +13,9 @@ print("Starting create_agent.py")
 print("loading env vars")
 # Load environment variables
 load_dotenv()
+
+print("importing agent instructions")
+instructions = AgentConf.AGENT_INSTRUCTIONS_V1
 
 print("AZURE_EXISTING_AIPROJECT_ENDPOINT:", os.environ.get("AZURE_EXISTING_AIPROJECT_ENDPOINT"))
 print("MODEL_DEPLOYMENT_NAME:", os.environ.get("MODEL_DEPLOYMENT_NAME"))
@@ -36,13 +40,38 @@ def get_pull_request_body(pr_id: str) -> str:
     gh = GithubAPI()
     return gh.get_pull_request_body(pr_id)
 
+def get_control_plan_metrics_from_pr_comment(pr_id: str) -> str:
+    """
+    Fetches the control plan metrics from a pull request comment.
+
+    :param pr_id: The pull request ID (e.g., '3043').
+    :return: A string from the resolvable PR comment that contains the Control Plan Report PAV Metrics, if such a comment exists.  
+    """
+    gh = GithubAPI()
+    bodyString = gh.get_control_plan_metrics_from_pr_comment(pr_id)
+    return extract_control_plan_table(bodyString)
+
+def extract_control_plan_table(body: str) -> str:
+    """
+    Extracts the markdown table (including header and all rows) from the given body string.
+    Returns the table as a string, or an empty string if not found.
+    """
+    header = "| Country | Category Group | Reference | Actual | PAV Diff |"
+    start_idx = body.find(header)
+    if start_idx == -1:
+        return ""
+    # The table starts at the header and goes to the end of the string
+    table = body[start_idx:]
+    return table.strip()
+
 # Define user functions
-user_functions = {get_jira_ticket_description, get_pull_request_body}
+user_functions = {get_jira_ticket_description, get_pull_request_body, get_control_plan_metrics_from_pr_comment}
 
 # Map tool names to Python functions
 tool_function_map = {
     "get_jira_ticket_description": get_jira_ticket_description,
     "get_pull_request_body": get_pull_request_body,
+    "get_control_plan_metrics_from_pr_comment": get_control_plan_metrics_from_pr_comment,
 }
 
 # Retrieve required environment variables
@@ -60,7 +89,7 @@ with project_client:
     agent = project_client.agents.create_agent(
         model=model_name,
         name="jira-github-agent",
-        instructions="You are a helpful agent that can fetch Jira ticket descriptions and GitHub pull request bodies.",
+        instructions=instructions,
         tools=functions.definitions,
     )
     print(f"Created agent, ID: {agent.id}")
