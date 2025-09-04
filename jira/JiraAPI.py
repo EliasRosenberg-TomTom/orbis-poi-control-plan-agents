@@ -18,7 +18,9 @@ class JiraAPI:
         url = f"{self.base_url}/{issue_id_or_key}"
         response = requests.get(url, auth=self.auth)
         if response.status_code == 200:
-            description = response.json().get('fields', {}).get('description', 'No description found')
+            description = response.json().get('fields', {}).get('description', '')
+            if not description:
+                return 'No description found'
             return description
         else:
             return f'Error: {response.status_code} - {response.text}'

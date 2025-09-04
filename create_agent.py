@@ -59,7 +59,7 @@ def extract_control_plan_table(body: str) -> str:
     header = "| Country | Category Group | Reference | Actual | PAV Diff |"
     start_idx = body.find(header)
     if start_idx == -1:
-        return ""
+        return "No string found"
     table = body[start_idx:]
     return table.strip()
 
