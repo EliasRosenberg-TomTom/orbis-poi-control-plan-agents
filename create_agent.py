@@ -15,7 +15,7 @@ print("loading env vars")
 load_dotenv()
 
 print("importing agent instructions")
-instructions = AgentConf.AGENT_INSTRUCTIONS_V1
+instructions = AgentConf.load_agent_instructions("rc-validator-instructions-v2.txt")
 
 print("AZURE_EXISTING_AIPROJECT_ENDPOINT:", os.environ.get("AZURE_EXISTING_AIPROJECT_ENDPOINT"))
 print("MODEL_DEPLOYMENT_NAME:", os.environ.get("MODEL_DEPLOYMENT_NAME"))
@@ -60,7 +60,6 @@ def extract_control_plan_table(body: str) -> str:
     start_idx = body.find(header)
     if start_idx == -1:
         return ""
-    # The table starts at the header and goes to the end of the string
     table = body[start_idx:]
     return table.strip()
 
@@ -74,7 +73,7 @@ tool_function_map = {
     "get_control_plan_metrics_from_pr_comment": get_control_plan_metrics_from_pr_comment,
 }
 
-# Retrieve required environment variables
+
 project_endpoint = os.environ["AZURE_EXISTING_AIPROJECT_ENDPOINT"]
 model_name = os.environ["MODEL_DEPLOYMENT_NAME"]
 
@@ -140,7 +139,6 @@ with project_client:
                         tool_outputs=tool_outputs
                     )
 
-            # Fetch and print the latest assistant message
             messages = list(project_client.agents.messages.list(thread_id=thread.id))
             for message in messages:
                 if message.role == "assistant" and message.text_messages:
