@@ -20,6 +20,7 @@ instructions = AgentConf.load_agent_instructions("rc-validator-instructions-v2.t
 print("AZURE_EXISTING_AIPROJECT_ENDPOINT:", os.environ.get("AZURE_EXISTING_AIPROJECT_ENDPOINT"))
 print("MODEL_DEPLOYMENT_NAME:", os.environ.get("MODEL_DEPLOYMENT_NAME"))
 
+# Wrapper functions for agent tools.
 def get_jira_ticket_description(issue_id_or_key: str) -> str:
     """
     Fetches the description of a Jira ticket by its ID or key.
@@ -66,7 +67,7 @@ def extract_control_plan_table(body: str) -> str:
 # Define user functions
 user_functions = {get_jira_ticket_description, get_pull_request_body, get_control_plan_metrics_from_pr_comment}
 
-# Map tool names to Python functions
+# Map tool names to Python functions, used for terminal chat only. 
 tool_function_map = {
     "get_jira_ticket_description": get_jira_ticket_description,
     "get_pull_request_body": get_pull_request_body,
@@ -87,7 +88,7 @@ functions = FunctionTool(functions=user_functions)
 with project_client:
     agent = project_client.agents.create_agent(
         model=model_name,
-        name="jira-github-agent",
+        name="rc-nightly-test-agent",
         instructions=instructions,
         tools=functions.definitions,
     )
