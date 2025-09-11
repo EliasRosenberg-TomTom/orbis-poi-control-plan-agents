@@ -40,7 +40,7 @@ class JiraAPI:
         url = f"{self.base_url}/{issue_id_or_key}"
         response = requests.get(url, auth=self.auth)
         if response.status_code == 200:
-            release_notes = response.json().get('fields', {}).get('customfield_123456', '')  # Replace with actual custom field ID
+            release_notes = response.json().get('fields', {}).get('customfield_10179', '')  # Release notes consistently on customfield_10179
             if not release_notes:
                 return 'No release notes found'
             return release_notes
