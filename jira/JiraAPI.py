@@ -24,3 +24,25 @@ class JiraAPI:
             return description
         else:
             return f'Error: {response.status_code} - {response.text}'
+    
+    def get_ticket_title(self, issue_id_or_key):
+        url = f"{self.base_url}/{issue_id_or_key}"
+        response = requests.get(url, auth=self.auth)
+        if response.status_code == 200:
+            title = response.json().get('fields', {}).get('summary', '')
+            if not title:
+                return 'No title found'
+            return title
+        else:
+            return f'Error: {response.status_code} - {response.text}'
+        
+    def get_ticket_release_notes(self, issue_id_or_key):
+        url = f"{self.base_url}/{issue_id_or_key}"
+        response = requests.get(url, auth=self.auth)
+        if response.status_code == 200:
+            release_notes = response.json().get('fields', {}).get('customfield_123456', '')  # Replace with actual custom field ID
+            if not release_notes:
+                return 'No release notes found'
+            return release_notes
+        else:
+            return f'Error: {response.status_code} - {response.text}'

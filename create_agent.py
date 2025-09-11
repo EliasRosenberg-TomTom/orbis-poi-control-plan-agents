@@ -3,7 +3,7 @@ from azure.identity import DefaultAzureCredential
 from azure.ai.projects import AIProjectClient
 from azure.ai.agents.models import FunctionTool
 from agent_conf.AgentConf import AgentConf
-from agent_tools import get_jira_ticket_description, get_pull_request_body, get_control_plan_metrics_from_pr_comment
+from agent_tools import get_jira_ticket_description, get_pull_request_body, get_control_plan_metrics_from_pr_comment, get_jira_ticket_title
 import os
 import json
 import time
@@ -20,13 +20,14 @@ print("AZURE_EXISTING_AIPROJECT_ENDPOINT:", os.environ.get("AZURE_EXISTING_AIPRO
 print("MODEL_DEPLOYMENT_NAME:", os.environ.get("MODEL_DEPLOYMENT_NAME"))
 
 # Define user functions
-user_functions = {get_jira_ticket_description, get_pull_request_body, get_control_plan_metrics_from_pr_comment}
+user_functions = {get_jira_ticket_description, get_pull_request_body, get_control_plan_metrics_from_pr_comment, get_jira_ticket_title}
 
 # Map tool names to Python functions, used for terminal chat only. 
 tool_function_map = {
     "get_jira_ticket_description": get_jira_ticket_description,
     "get_pull_request_body": get_pull_request_body,
     "get_control_plan_metrics_from_pr_comment": get_control_plan_metrics_from_pr_comment,
+    "get_jira_ticket_title": get_jira_ticket_title,
 }
 
 

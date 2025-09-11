@@ -12,6 +12,16 @@ def get_jira_ticket_description(issue_id_or_key: str) -> str:
     jira = JiraAPI()
     return jira.get_ticket_description(issue_id_or_key)
 
+def get_jira_ticket_title(issue_id_or_key: str) -> str:
+    """
+    Fetches the title of a Jira ticket by its ID or key.
+
+    :param issue_id_or_key: The Jira issue ID or key (e.g., 'MPOI-6652').
+    :return: The ticket title as a string.
+    """
+    jira = JiraAPI()
+    return jira.get_ticket_title(issue_id_or_key)
+
 def get_pull_request_body(pr_id: str) -> str:
     """
     Fetches the body of a pull request by its pr issue number.
