@@ -4,7 +4,9 @@ from azure.ai.projects import AIProjectClient
 from azure.ai.agents.models import FunctionTool
 from agent_conf.AgentConf import AgentConf
 from agent_tools import (get_jira_ticket_description, get_pull_request_body,
-get_control_plan_metrics_from_pr_comment, get_jira_ticket_title, get_jira_ticket_release_notes)
+get_control_plan_metrics_from_pr_comment, get_jira_ticket_title, 
+get_jira_ticket_release_notes, get_jira_ticket_attachments,
+ get_jira_ticket_xlsx_attachment)
 import os
 import json
 import time
@@ -15,13 +17,15 @@ print("loading env vars")
 load_dotenv()
 
 print("importing agent instructions")
-instructions = AgentConf.load_agent_instructions("rc-validator-instructions-v2.txt")
+instructions = AgentConf.load_agent_instructions("release-tag-llm-instructions.txt")
 
 print("AZURE_EXISTING_AIPROJECT_ENDPOINT:", os.environ.get("AZURE_EXISTING_AIPROJECT_ENDPOINT"))
 print("MODEL_DEPLOYMENT_NAME:", os.environ.get("MODEL_DEPLOYMENT_NAME"))
 
 # Define user functions
-user_functions = {get_jira_ticket_description, get_pull_request_body, get_control_plan_metrics_from_pr_comment, get_jira_ticket_title, get_jira_ticket_release_notes}
+user_functions = {get_jira_ticket_description, get_pull_request_body, get_control_plan_metrics_from_pr_comment,
+                   get_jira_ticket_title, get_jira_ticket_release_notes, get_jira_ticket_xlsx_attachment, 
+                   get_jira_ticket_attachments}
 
 # Map tool names to Python functions, used for terminal chat only. 
 tool_function_map = {
@@ -30,6 +34,8 @@ tool_function_map = {
     "get_control_plan_metrics_from_pr_comment": get_control_plan_metrics_from_pr_comment,
     "get_jira_ticket_title": get_jira_ticket_title,
     "get_jira_ticket_release_notes": get_jira_ticket_release_notes,
+    "get_jira_ticket_attachments": get_jira_ticket_attachments,
+    "get_jira_ticket_xlsx_attachment": get_jira_ticket_xlsx_attachment,
 }
 
 

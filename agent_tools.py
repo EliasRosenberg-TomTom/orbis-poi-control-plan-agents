@@ -64,3 +64,37 @@ def extract_control_plan_table(body: str) -> str:
         return "No string found"
     table = body[start_idx:]
     return table.strip()
+
+def get_jira_ticket_xlsx_attachment(issue_id_or_key: str, filename: str = None, index: int = 0) -> str:
+    """
+    Fetches and parses an xlsx attachment from a Jira ticket.
+    Returns the parsed table as a string (CSV format) if successful, or an error message.
+    :param issue_id_or_key: The Jira ticket key (e.g., 'MPOI-1234').
+    :param filename: (Optional) The filename of the attachment to fetch.
+    :param index: (Optional) The index of the attachment to fetch if filename is not provided.
+    :return: CSV string of the Excel file, or an error message.
+    """
+    jira = JiraAPI()
+    result = jira.parse_xlsx_attachment(issue_id_or_key, filename, index)
+    if isinstance(result, str):
+        # Error message
+        return result
+    try:
+        # Convert DataFrame to CSV string for easy agent consumption
+        return result.to_csv(index=False)
+    except Exception as e:
+        return f"Failed to convert Excel data to CSV: {e}"
+
+def get_jira_ticket_attachments(issue_id_or_key: str) -> str:
+    """
+    Fetches the list of attachments for a Jira ticket.
+    Returns a string listing the filenames of the attachments, or an error message.
+    :param issue_id_or_key: The Jira ticket key (e.g., 'MPOI-1234').
+    :return: A string listing attachment filenames, or an error message.
+    """
+    jira = JiraAPI()
+    attachments = jira.get_ticket_attachments(issue_id_or_key)
+    if not attachments:
+        return "No attachments found for this ticket."
+    filenames = [att.get("filename", "unknown") for att in attachments]
+    return "Attachments: " + ", ".join(filenames)
