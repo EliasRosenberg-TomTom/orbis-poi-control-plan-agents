@@ -25,6 +25,14 @@ class GithubAPI:
             return response.json().get("body", "No body found")
         else:
             return f'Error: {response.status_code} - {response.text}'
+        
+    def get_pull_request_title(self, pr_number):
+        url = f"{self.base_url}/pulls/{pr_number}"
+        response = requests.get(url, headers=self.headers)
+        if response.status_code == 200:
+            return response.json().get("title", "No title found")
+        else:
+            return f'Error: {response.status_code} - {response.text}'
 
     def get_control_plan_metrics_from_pr_comment(self, pr_number):
         url = f"{self.base_url}/pulls/{pr_number}/comments"

@@ -1,5 +1,6 @@
 from jira.JiraAPI import JiraAPI
 from github.GithubAPI import GithubAPI
+from databricks.DatabricksAPI import DatabricksAPI
 
 # Wrapper functions for agent tools.
 def get_jira_ticket_description(issue_id_or_key: str) -> str:
@@ -41,6 +42,16 @@ def get_pull_request_body(pr_id: str) -> str:
     """
     gh = GithubAPI()
     return gh.get_pull_request_body(pr_id)
+
+def get_pull_request_title(pr_id: str) -> str:
+    """
+    Fetches the title of a pull request by its pr issue number.
+
+    :param pr_id: The pull request ID (e.g., '3043').
+    :return: The pull request title as a string.
+    """
+    gh = GithubAPI()
+    return gh.get_pull_request_title(pr_id)
 
 def get_control_plan_metrics_from_pr_comment(pr_id: str) -> str:
     """
@@ -98,3 +109,17 @@ def get_jira_ticket_attachments(issue_id_or_key: str) -> str:
         return "No attachments found for this ticket."
     filenames = [att.get("filename", "unknown") for att in attachments]
     return "Attachments: " + ", ".join(filenames)
+
+def get_apr_metrics(aprNumber: int) -> str:
+    """
+    Fetches APR metrics from Databricks for a given APR number.
+    :param aprNumber: The APR number (e.g., 119).
+    :return: A string representation of the APR metrics, or an error message.
+    """
+    db = DatabricksAPI()
+    catalog = "pois_aqua_dev"
+    schema = f"run_apr_{aprNumber}"
+    table =  "issue_list"
+    statement = f"SELECT * FROM {catalog}.{schema}.{table} WHERE apr_number = {aprNumber}"
+
+    return db.execute_sql(catalog, schema, table, statement)
