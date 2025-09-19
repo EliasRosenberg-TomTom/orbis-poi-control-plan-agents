@@ -6,7 +6,7 @@ from agent_conf.AgentConf import AgentConf
 from agent_tools import (get_jira_ticket_description, get_pull_request_body,
 get_control_plan_metrics_from_pr_comment, get_jira_ticket_title, 
 get_jira_ticket_release_notes, get_jira_ticket_attachments,
- get_jira_ticket_xlsx_attachment)
+ get_jira_ticket_xlsx_attachment, get_apr_metrics)
 import os
 import json
 import time
@@ -25,7 +25,7 @@ print("MODEL_DEPLOYMENT_NAME:", os.environ.get("MODEL_DEPLOYMENT_NAME"))
 # Define user functions
 user_functions = {get_jira_ticket_description, get_pull_request_body, get_control_plan_metrics_from_pr_comment,
                    get_jira_ticket_title, get_jira_ticket_release_notes, get_jira_ticket_xlsx_attachment, 
-                   get_jira_ticket_attachments}
+                   get_jira_ticket_attachments, get_apr_metrics}
 
 # Map tool names to Python functions, used for terminal chat only. 
 tool_function_map = {
@@ -36,6 +36,7 @@ tool_function_map = {
     "get_jira_ticket_release_notes": get_jira_ticket_release_notes,
     "get_jira_ticket_attachments": get_jira_ticket_attachments,
     "get_jira_ticket_xlsx_attachment": get_jira_ticket_xlsx_attachment,
+    "get_apr_metrics": get_apr_metrics,
 }
 
 

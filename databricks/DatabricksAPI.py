@@ -1,6 +1,7 @@
 import os
 import requests
 from dotenv import load_dotenv
+import json
 
 class DatabricksAPI:
     def __init__(self, token=None, host=None, warehouse_id=None):
@@ -25,6 +26,6 @@ class DatabricksAPI:
         }
         response = requests.post(url, json=payload, headers=self.headers)
         if response.status_code == 200:
-            return response.json()
+            return json.dumps(response.json())
         else:
-            return f'Error: {response.status_code} - {response.text}'
+            return json.dumps({'error': response.status_code, 'message': response.text})

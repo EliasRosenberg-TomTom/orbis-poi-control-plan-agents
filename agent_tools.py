@@ -119,7 +119,7 @@ def get_apr_metrics(aprNumber: int) -> str:
     db = DatabricksAPI()
     catalog = "pois_aqua_dev"
     schema = f"run_apr_{aprNumber}"
-    table =  "issue_list"
-    statement = f"SELECT * FROM {catalog}.{schema}.{table} WHERE apr_number = {aprNumber}"
+    table =  "issue_list_metrics_by_category_group"
+    statement = f"select diff_absolute, country, category_group_name FROM {catalog}.{schema}.{table} WHERE validation_theme = 'pav'"
 
-    return db.execute_sql(catalog, schema, table, statement)
+    return db.execute_sql(catalog, schema, statement)
