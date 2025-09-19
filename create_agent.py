@@ -7,7 +7,7 @@ from agent_tools import (get_jira_ticket_description, get_pull_request_body,
 get_control_plan_metrics_from_pr_comment, get_jira_ticket_title, 
 get_jira_ticket_release_notes, get_jira_ticket_attachments,
  get_jira_ticket_xlsx_attachment, get_apr_metrics, 
- get_PRs_from_apr)
+ get_PRs_from_apr, get_pull_request_title)
 import os
 import json
 import time
@@ -24,7 +24,7 @@ print("AZURE_EXISTING_AIPROJECT_ENDPOINT:", os.environ.get("AZURE_EXISTING_AIPRO
 print("MODEL_DEPLOYMENT_NAME:", os.environ.get("MODEL_DEPLOYMENT_NAME"))
 
 # Define user functions
-user_functions = {get_jira_ticket_description, get_pull_request_body, get_control_plan_metrics_from_pr_comment,
+user_functions = {get_jira_ticket_description, get_pull_request_body, get_pull_request_title,  get_control_plan_metrics_from_pr_comment,
                    get_jira_ticket_title, get_jira_ticket_release_notes, get_jira_ticket_xlsx_attachment, 
                    get_jira_ticket_attachments, get_apr_metrics, get_PRs_from_apr}
 
@@ -32,6 +32,7 @@ user_functions = {get_jira_ticket_description, get_pull_request_body, get_contro
 tool_function_map = {
     "get_jira_ticket_description": get_jira_ticket_description,
     "get_pull_request_body": get_pull_request_body,
+    "get_pull_request_title": get_pull_request_title,
     "get_control_plan_metrics_from_pr_comment": get_control_plan_metrics_from_pr_comment,
     "get_jira_ticket_title": get_jira_ticket_title,
     "get_jira_ticket_release_notes": get_jira_ticket_release_notes,

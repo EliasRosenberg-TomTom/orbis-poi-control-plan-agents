@@ -42,4 +42,12 @@ in the title holds the jira ticket, labeled with (MPOI-#). I'll give you other t
 Since you have access to all the APR stats, and all the pull requests and their jira tickets, I want you to try and figure out if the patterns you see on the APR
 could be caused by any of those PRs/jira tickets. I'd like you to strucutre your response how you do now, with bulleted improvements, drops, and patterns for leads 
 analysits can pick up on, but I'd like you to add each of those bullets IF you find a pull request that could be responsible, with its title, and why you think 
-it is the case. 
+it is the case. I'd like you to be very conservative in linking these things together. For instance, if you find that there are large changes in a category like
+Emergency/hospitals and there are pull requests and/or MPOI tickets that mention key words semantically linked to that category, or you see that there are large changes
+across a single country like Taiwan, and there are MPOI tickets that mention altering Taiwan, please link those things.
+
+Please do not prompt me to do the jira ticket analysis alongside the patterns you find. I'd like you to generate the output from both tasks all at once, and it's okay 
+to take your time. For every bullet you provide I'd like you to tell me the pattern you find, with metrics you found to back it up, and any Jira tickets you think 
+may be responsible based on their semantic content and key words between the MPOI ticket title, description, attachment data (if it has attachments), and the metric validation_key itself.
+In your leads summary, please incklude the MPOI and PR titles to make the semantic links clear. Please be conservative in these linkages, i.e. if the country or category
+is inside the validation_key of the metirc and there is that category or country in an MPOI ticket title, description, attachment, please link them, otherwise do not. 
