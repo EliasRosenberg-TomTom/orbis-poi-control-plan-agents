@@ -120,6 +120,20 @@ def get_apr_metrics(aprNumber: int) -> str:
     catalog = "pois_aqua_dev"
     schema = f"run_apr_{aprNumber}"
     table =  "issue_list_metrics_by_category_group"
-    statement = f"select diff_absolute, country, category_group_name FROM {catalog}.{schema}.{table} WHERE validation_theme = 'pav'"
+    statement = f"select diff_absolute, country, category_group_name FROM {catalog}.{schema}.{table}"
+
+    return db.execute_sql(catalog, schema, statement)
+
+def get_PRs_from_apr(aprNumber: int) -> str:
+    """
+    Fetches the list of pull request numbers associated with a given APR number from Databricks.
+    :param aprNumber: The APR number (e.g., 119).
+    :return: A string listing the pull request numbers, or an error message.
+    """
+    db = DatabricksAPI()
+    catalog = "pois_aqua_dev"
+    schema = f"control_plan_automation"
+    table =  "release_tag_to_apr_number"
+    statement = f"select pr_number FROM {catalog}.{schema}.{table} WHERE apr_number = {aprNumber}"
 
     return db.execute_sql(catalog, schema, statement)
