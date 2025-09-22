@@ -36,6 +36,7 @@ Each bullet followed a formula: country/region → impact metric → affected ca
 
 **Summary:**  
 This version is effective because it delivers quantifiable results, country/category highlights, and actionable comparisons—all in tightly worded, structured bullets. This approach maximizes reader clarity and value while respecting their time and attention.
+Please use metrics to back up the broad patterns you lay out in the summary. Please don't use buzzwords and broadstrokes. I need the patterns you see distilled, with metrics, for countries and categories. 
 
 I have a secondary task for you. I'm going to give you access to a tool to fetch all the PR numbers that went into that APR, and a tool to get the title of that pull request, which 
 in the title holds the jira ticket, labeled with (MPOI-#). I'll give you other tools to fetch all the information about that jira ticket you can: title, description, body, and any attachments on the jira ticket. 
@@ -51,3 +52,41 @@ to take your time. For every bullet you provide I'd like you to tell me the patt
 may be responsible based on their semantic content and key words between the MPOI ticket title, description, attachment data (if it has attachments), and the metric validation_key itself.
 In your leads summary, please incklude the MPOI and PR titles to make the semantic links clear. Please be conservative in these linkages, i.e. if the country or category
 is inside the validation_key of the metirc and there is that category or country in an MPOI ticket title, description, attachment, please link them, otherwise do not. 
+As an additional request, If a Pull Request title is of the form conf(BR): as its prefix, please mention its full PR title at the bottom of your summary. It is useful 
+to the Map Experts analyzing this document to see when big runs were included, which is what those conf(BR): pull requests merge in to the code base. For Big Run data, you gave me this as instructions
+to feed back to you that would make the goal clear: 
+
+### Internal Instructions for Accurate BigRun PR Identification
+
+1. **Retrieve and Parse the Full PR List**  
+   - Always fetch the **complete list of direct and bundled PRs** merged into the APR (using both the direct APR PR list and any bundled PRs within daily rollups/RCs).
+
+2. **Explicitly Scan for `'conf(BR):'` Prefix Across All PR Titles**  
+   - For every PR—whether top-level in the APR or included via an RC/chore/daily rollup—**check the title for the exact `'conf(BR):'` prefix.**
+   - Do not assume bundled PRs are less important: **recursively scan all sub-PRs for `'conf(BR):'` titles** within rollups.
+
+3. **Deduplicate and List All BigRun PRs**  
+   - If multiple `'conf(BR):'` PRs are detected (even if bundled), **list each distinctly** in the final "BigRun PRs" section.
+   - Include both top-level and bundled instances in the summary.
+
+4. **Report Bundled BigRun PRs Clearly**  
+   - In the generated summary/release notes, **call out bundled BigRun PRs** explicitly, referencing their PR number and title.
+   - Example:  
+     > “BigRun PR 3984 (`conf(BR): 2025-09-11-15-36-54`) was included via PR 4007.”
+
+5. **If in Doubt, Trace Parent-Child Relationships**  
+   - Whenever a BigRun PR appears in a bundle/daily RC, **confirm its presence in the APR by tracing through the parent rollup PR.**
+   - Avoid filtering only for direct PRs—always consider full inclusion paths.
+
+6. **Summarize All BigRun PRs in a Dedicated Section**
+   - Present all detected BigRun PRs in a bullet list, so analysts can instantly see every high-impact batch included in that APR.
+
+7. **Automate Cross-Validation**  
+   - If possible, after generating the BigRun list, **cross-validate** by scanning all PR bodies/descriptions for nested `'conf(BR):'` entries as a final check.
+
+---
+
+**Summary Instruction:**  
+_"For every APR summary, always exhaustively scan all merged PRs and included/bundled PRs for `'conf(BR):'` prefix in the title, report each distinct BigRun PR in the release note, and make clear when the BigRun PR was merged via an RC or rollup PR."
+
+Please generate your output in markdown format so I can copy-paste it into a markdown rendering page for easy reading. 
