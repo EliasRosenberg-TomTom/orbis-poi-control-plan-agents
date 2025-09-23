@@ -179,7 +179,7 @@ class AgentTeam:
 
         :param task: The task to be added.
         """
-        print(f"[DEBUG] Adding task for agent '{task.recipient}': {task.task_description}")
+        # print(f"[DEBUG] Adding task for agent '{task.recipient}': {task.task_description}")
         self._tasks.append(task)
 
     def _create_team_leader(self) -> None:
@@ -289,8 +289,14 @@ class AgentTeam:
 
         if self._agent_thread is None:
             self._agent_thread = self._agents_client.threads.create()
-            print(f"Created thread with ID: {self._agent_thread.id}")
+            # print(f"Created thread with ID: {self._agent_thread.id}")
 
+        # Always send user input directly to TeamLeader; agent instructions will guide behavior
+        message = self._agents_client.messages.create(
+            thread_id=self._agent_thread.id,
+            role="user",
+            content=request,
+        )
         # Always send user input directly to TeamLeader; agent instructions will guide behavior
         message = self._agents_client.messages.create(
             thread_id=self._agent_thread.id,
@@ -310,28 +316,30 @@ class AgentTeam:
                 print(f"TeamLeader: {text_message.text.value}")
             else:
                 print("TeamLeader did not return a response.")
-                self._current_request_span = None
-        else:
-            # General query: send user input directly to TeamLeader
-            print("[DEBUG] No APR analysis requested. Sending user input directly to TeamLeader for general response.")
-            message = self._agents_client.messages.create(
-                thread_id=self._agent_thread.id,
-                role="user",
-                content=request,
-            )
-            if self._team_leader and self._team_leader.agent_instance:
+
+        # After TeamLeader responds, process and execute all tasks in the queue
+        while self._tasks:
+            task = self._tasks.pop(0)
+            agent_member = self._get_member_by_name(task.recipient)
+            if agent_member and agent_member.agent_instance:
+                self._agents_client.messages.create(
+                    thread_id=self._agent_thread.id,
+                    role="user",
+                    content=task.task_description,
+                )
                 run = self._agents_client.runs.create_and_process(
                     thread_id=self._agent_thread.id,
-                    agent_id=self._team_leader.agent_instance.id,
+                    agent_id=agent_member.agent_instance.id,
                 )
                 text_message = self._agents_client.messages.get_last_message_text_by_role(
                     thread_id=self._agent_thread.id,
                     role=MessageRole.AGENT,
                 )
                 if text_message and text_message.text:
-                    print(f"TeamLeader: {text_message.text.value}")
+                    print(f"{task.recipient}: {text_message.text.value}")
                 else:
-                    print("TeamLeader did not return a response.")
+                    print(f"{task.recipient} did not return a response.")
+                self._current_request_span = None
 
     def _get_member_by_name(self, name) -> Optional[_AgentTeamMember]:
         """

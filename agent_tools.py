@@ -152,3 +152,35 @@ def get_apr_metrics_for_given_metric_type(aprNumber: int, metricType: str) -> st
     statement = f"select  * FROM {catalog}.{schema}.{table} WHERE validation_theme = '{metricType}'"
 
     return db.execute_sql(catalog, schema, statement)
+
+def get_pav_metrics_for_apr(aprNumber: int) -> str:
+    db = DatabricksAPI()
+    catalog = "pois_aqua_dev"
+    schema = f"run_apr_{aprNumber}"
+    table = "issue_list"
+    statement = f"select * FROM {catalog}.{schema}.{table} WHERE validation_theme = 'pav'"
+    return db.execute_sql(catalog, schema, statement)
+
+def get_ppa_metrics_for_apr(aprNumber: int) -> str:
+    db = DatabricksAPI()
+    catalog = "pois_aqua_dev"
+    schema = f"run_apr_{aprNumber}"
+    table = "issue_list"
+    statement = f"select * FROM {catalog}.{schema}.{table} WHERE validation_theme = 'ppa'"
+    return db.execute_sql(catalog, schema, statement)
+
+def get_sup_metrics_for_apr(aprNumber: int) -> str:
+    db = DatabricksAPI()
+    catalog = "pois_aqua_dev"
+    schema = f"run_apr_{aprNumber}"
+    table = "issue_list"
+    statement = f"select * FROM {catalog}.{schema}.{table} WHERE validation_theme = 'sup'"
+    return db.execute_sql(catalog, schema, statement)
+
+def get_dup_metrics_for_apr(aprNumber: int) -> str:
+    db = DatabricksAPI()
+    catalog = "pois_aqua_dev"
+    schema = f"run_apr_{aprNumber}"
+    table = "issue_list"
+    statement = f"select * FROM {catalog}.{schema}.{table} WHERE validation_theme = 'dup'"
+    return db.execute_sql(catalog, schema, statement)

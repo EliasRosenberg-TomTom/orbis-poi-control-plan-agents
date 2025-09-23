@@ -8,11 +8,14 @@ from azure.ai.agents.models import ToolSet, FunctionTool
 from azure.identity import DefaultAzureCredential
 from dotenv import load_dotenv
 from utils.agent_team import AgentTeam, _create_task
-from utils.agent_trace_configurator import AgentTraceConfigurator
 from agent_tools import (get_jira_ticket_description, get_pull_request_body,
 get_control_plan_metrics_from_pr_comment, get_jira_ticket_title, 
 get_jira_ticket_release_notes, get_jira_ticket_attachments,
- get_jira_ticket_xlsx_attachment, get_apr_metrics, 
+ get_jira_ticket_xlsx_attachment,
+ get_pav_metrics_for_apr, 
+ get_ppa_metrics_for_apr, 
+ get_sup_metrics_for_apr, 
+ get_dup_metrics_for_apr,
  get_PRs_from_apr, get_pull_request_title)
 
 load_dotenv()
@@ -25,7 +28,7 @@ project_client = AIProjectClient(
     credential=DefaultAzureCredential(),
 )
 
-orchestrator_function_set: Set = {_create_task, get_jira_ticket_description, get_pull_request_body, get_pull_request_title,  get_control_plan_metrics_from_pr_comment, get_jira_ticket_title, get_jira_ticket_release_notes, get_jira_ticket_xlsx_attachment, get_jira_ticket_attachments, get_apr_metrics, get_PRs_from_apr} #not sure if I need anything here just yet
+orchestrator_function_set: Set = {_create_task, get_jira_ticket_description, get_pull_request_body, get_pull_request_title,  get_control_plan_metrics_from_pr_comment, get_jira_ticket_title, get_jira_ticket_release_notes, get_jira_ticket_xlsx_attachment, get_jira_ticket_attachments, get_PRs_from_apr} #not sure if I need anything here just yet
 
 with project_client:
     agents_client = project_client.agents
@@ -41,8 +44,11 @@ with project_client:
             get_jira_ticket_release_notes,
             get_jira_ticket_xlsx_attachment, 
             get_jira_ticket_attachments, 
-            get_apr_metrics, 
-            get_PRs_from_apr
+            get_PRs_from_apr, 
+            get_pav_metrics_for_apr, 
+            get_ppa_metrics_for_apr, 
+            get_sup_metrics_for_apr,
+            get_dup_metrics_for_apr,
         }
     )
 
@@ -84,27 +90,26 @@ with project_client:
                 toolset=orchestrator_toolset,
             )
 
-            # Create a unique ToolSet for each agent
-            pav_functions = FunctionTool(functions={get_control_plan_metrics_from_pr_comment})
+            pav_functions = FunctionTool(functions={get_pav_metrics_for_apr})
             pav_toolset = ToolSet()
             pav_toolset.add(pav_functions)
 
-            ppa_functions = FunctionTool(functions={get_control_plan_metrics_from_pr_comment})
+            ppa_functions = FunctionTool(functions={get_ppa_metrics_for_apr})
             ppa_toolset = ToolSet()
             ppa_toolset.add(ppa_functions)
 
-            sup_functions = FunctionTool(functions={get_control_plan_metrics_from_pr_comment})
+            sup_functions = FunctionTool(functions={get_sup_metrics_for_apr})
             sup_toolset = ToolSet()
             sup_toolset.add(sup_functions)
 
-            dup_functions = FunctionTool(functions={get_control_plan_metrics_from_pr_comment})
+            dup_functions = FunctionTool(functions={get_dup_metrics_for_apr})
             dup_toolset = ToolSet()
             dup_toolset.add(dup_functions)
 
             agent_team.add_agent(
                 model=model_deployment_name,
                 name="PAV agent",
-                instructions="You are the PAV agent. Only analyze PAV metrics. When assigned a task, use the get_apr_metrics function to get PAV metrics for the given APR number, analyze for patterns, and report your findings back to the TeamLeader. Do not analyze any other metric type.",
+                instructions="You are the PAV agent. Only analyze PAV metrics. When assigned a task, use the get_pav_metrics_for_apr function with the given APR number, analyze for patterns, and report your findings back to the TeamLeader. Do not analyze any other metric type.",
                 toolset=pav_toolset,
                 can_delegate=False,
             )
@@ -112,7 +117,7 @@ with project_client:
             agent_team.add_agent(
                 model=model_deployment_name,
                 name="PPA agent",
-                instructions="You are the PPA agent. Only analyze PPA metrics. When assigned a task, use the get_apr_metrics function to get PPA metrics for the given APR number, analyze for patterns, and report your findings back to the TeamLeader. Do not analyze any other metric type.",
+                instructions="You are the PPA agent. Only analyze PPA metrics. When assigned a task, use the get_ppa_metrics_for_apr function with the given APR number, analyze for patterns, and report your findings back to the TeamLeader. Do not analyze any other metric type.",
                 toolset=ppa_toolset,
                 can_delegate=False,
             )
@@ -120,7 +125,7 @@ with project_client:
             agent_team.add_agent(
                 model=model_deployment_name,
                 name="SUP agent",
-                instructions="You are the SUP agent. Only analyze SUP metrics. When assigned a task, use the get_apr_metrics function to get SUP metrics for the given APR number, analyze for patterns, and report your findings back to the TeamLeader. Do not analyze any other metric type.",
+                instructions="You are the SUP agent. Only analyze SUP metrics. When assigned a task, use the get_sup_metrics_for_apr function with the given APR number, analyze for patterns, and report your findings back to the TeamLeader. Do not analyze any other metric type.",
                 toolset=sup_toolset,
                 can_delegate=False,
             )
@@ -128,7 +133,7 @@ with project_client:
             agent_team.add_agent(
                 model=model_deployment_name,
                 name="DUP agent",
-                instructions="You are the DUP agent. Only analyze DUP metrics. When assigned a task, use the get_apr_metrics function to get DUP metrics for the given APR number, analyze for patterns, and report your findings back to the TeamLeader. Do not analyze any other metric type.",
+                instructions="You are the DUP agent. Only analyze DUP metrics. When assigned a task, use the get_dup_metrics_for_apr function with the given APR number, analyze for patterns, and report your findings back to the TeamLeader. Do not analyze any other metric type.",
                 toolset=dup_toolset,
                 can_delegate=False,
             )
