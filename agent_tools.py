@@ -137,3 +137,18 @@ def get_PRs_from_apr(aprNumber: int) -> str:
     statement = f"select consecutiveAPRPullRequests FROM {catalog}.{schema}.{table} WHERE aprNumber = {aprNumber}"
 
     return db.execute_sql(catalog, schema, statement)
+
+def get_apr_metrics_for_given_metric_type(aprNumber: int, metricType: str) -> str:
+    """
+    Fetches APR metrics from Databricks for a given APR number and metric type.
+    :param aprNumber: The APR number (e.g., 121, 119, 110, etc.).
+    :param metricType: The metric type (e.g., 'pav', 'ppa', 'sup', 'dup').
+    :return: A string representation of the APR metrics for the specified type, or an error message.
+    """
+    db = DatabricksAPI()
+    catalog = "pois_aqua_dev"
+    schema = f"run_apr_{aprNumber}"
+    table =  "issue_list"
+    statement = f"select  * FROM {catalog}.{schema}.{table} WHERE validation_theme = '{metricType}'"
+
+    return db.execute_sql(catalog, schema, statement)
