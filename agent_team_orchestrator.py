@@ -68,22 +68,26 @@ with project_client:
                 name="TeamLeader",
                 instructions="""
                 You are the TeamLeader agent for the APR analysis team. Your team consists of:
-                - PAV agent: analyzes only PAV metrics
-                - PPA agent: analyzes only PPA metrics
-                - SUP agent: analyzes only SUP metrics
-                - DUP agent: analyzes only DUP metrics
+                - PAV agent: analyzes only PAV metrics for a given apr using the get_pav_metrics_for_apr function, passing it the apr number. It will know to use PAV metrics
+                - PPA agent: analyzes only PPA metrics for a given apr using the get_ppa_metrics_for_apr function, passing it the apr number. It will know to use PPA metrics
+                - SUP agent: analyzes only SUP metrics for a given apr using the get_sup_metrics_for_apr function, passing it the apr number. It will know to use SUP metrics
 
-                You are expected to be conversational, helpful, and context-aware. Respond to general questions, comments, or requests in a natural, friendly way. Use your available tools to answer user questions directly when possible.
+
+                You are expected to be conversational, helpful, and context-aware, and act as a Map and Geospatial expert. Respond to general questions, comments, or requests in a natural, friendly way. Use your available tools to answer user questions directly when possible.
 
                 Use your own semantic understanding and reasoning to determine when the user is requesting APR analysis (such as by providing an APR number, asking for APR metric analysis, or making it clear they want a full APR report). Do not rely on hardcoded string parsing or keyword matching; instead, interpret the user's intent naturally as a capable AI agent.
 
-                When you determine that APR analysis is requested, create tasks for all four agents using the _create_task function, passing the correct metric type for each agent. For example:
-                _create_task('apr analysis team', 'PAV agent', 'Analyze APR number 121 for PAV metrics', 'TeamLeader')
-                _create_task('apr analysis team', 'PPA agent', 'Analyze APR number 121 for PPA metrics', 'TeamLeader')
-                _create_task('apr analysis team', 'SUP agent', 'Analyze APR number 121 for SUP metrics', 'TeamLeader')
-                _create_task('apr analysis team', 'DUP agent', 'Analyze APR number 121 for DUP metrics', 'TeamLeader')
+                When you determine that APR analysis is requested, create tasks for all each agents you have using the _create_task function to give an agent a task to analyze its given metric, passing the apr number to each agent. For example:
 
-                Wait for all agents to return their summaries. Then, create a single task for yourself to combine their summaries into a markdown report and return it to the user. Do not analyze any metric yourself except for combining the results. Make sure each agent only analyzes its own metric type, and please structure your final analysis as markdown so I can copy and analyze it easily.
+                _create_task('apr analysis team', 'PAV agent', '121', 'TeamLeader')
+                _create_task('apr analysis team', 'PPA agent', '121', 'TeamLeader')
+                _create_task('apr analysis team', 'SUP agent', '121', 'TeamLeader')
+           
+                You can see how you should pass the task to measure SUP to the SUP agent, and the task to measure PAV to the PAV agent, and the PPA task to the PPA agent.
+
+                Please delegate properly, and give this task for the sub-agent to handle. It should take the task and execute it, trying to summarize data for its given metric in that APR. Wait for ALL agents (SUP, PAV, and PPA) to return their summaries. Then, create a single task for yourself to combine their summary metrics (please don't add conversational agent lines) into a single string and return it to the user.
+
+                Do not analyze any metric yourself except for combining the results. Make sure each agent only analyzes its own metric type, and please structure your final analysis as markdown so I can copy and analyze it easily.
 
                 If the user does not request APR analysis, continue the conversation normally, answer questions, and do not create any analysis tasks. Use your tools and capabilities to help the user as a general chatbot when appropriate.
                 """,
@@ -106,10 +110,23 @@ with project_client:
             dup_toolset = ToolSet()
             dup_toolset.add(dup_functions)
 
+
+            agent_team.add_agent(
+                model=model_deployment_name,
+                name="SUP agent",
+                instructions="You are the SUP agent. Only analyze SUP metrics. When assigned a task, use the get_sup_metrics_for_apr function with the given APR number, analyze for patterns, and report your findings back to the TeamLeader. Your task is not completed until you give your results back to the team leader, or explain" \
+                "to the team leader why you could not fetch the results, with the error you encountered, or there we simply no data returned by the tool you have to get metrics to summarize and report. Do not analyze any other metric type." \
+                "Please do not prompt the user for furhter input in your text. Your entire job is to receive a task from the TeamLeader, generate your analysis, and return it. You do not interact with the user directly.",
+                toolset=sup_toolset,
+                can_delegate=False,
+            )
+
             agent_team.add_agent(
                 model=model_deployment_name,
                 name="PAV agent",
-                instructions="You are the PAV agent. Only analyze PAV metrics. When assigned a task, use the get_pav_metrics_for_apr function with the given APR number, analyze for patterns, and report your findings back to the TeamLeader. Do not analyze any other metric type.",
+                instructions="You are the PAV agent. Only analyze PAV metrics. When assigned a task, use the get_pav_metrics_for_apr function with the given APR number, analyze for patterns, and report your findings back to the TeamLeader. Your task is not completed until you give your results back to the team leader, or explain" \
+                "to the team leader why you could not fetch the results, with the error you encountered, or there we simply no data returned by the tool you have to get metrics to summarize and report. Do not analyze any other metric type." \
+                "Please do not prompt the user for furhter input in your text. Your entire job is to receive a task from the TeamLeader, generate your analysis, and return it. You do not interact with the user directly.",
                 toolset=pav_toolset,
                 can_delegate=False,
             )
@@ -117,24 +134,10 @@ with project_client:
             agent_team.add_agent(
                 model=model_deployment_name,
                 name="PPA agent",
-                instructions="You are the PPA agent. Only analyze PPA metrics. When assigned a task, use the get_ppa_metrics_for_apr function with the given APR number, analyze for patterns, and report your findings back to the TeamLeader. Do not analyze any other metric type.",
+                instructions="You are the PPA agent. Only analyze PPA metrics. When assigned a task, use the get_ppa_metrics_for_apr function with the given APR number, analyze for patterns, and report your findings back to the TeamLeader. Your task is not completed until you give your results back to the team leader, or explain" \
+                "to the team leader why you could not fetch the results, with the error you encountered, or there we simply no data returned by the tool you have to get metrics to summarize and report. Do not analyze any other metric type." \
+                "Please do not prompt the user for furhter input in your text. Your entire job is to receive a task from the TeamLeader, generate your analysis, and return it. You do not interact with the user directly.",
                 toolset=ppa_toolset,
-                can_delegate=False,
-            )
-
-            agent_team.add_agent(
-                model=model_deployment_name,
-                name="SUP agent",
-                instructions="You are the SUP agent. Only analyze SUP metrics. When assigned a task, use the get_sup_metrics_for_apr function with the given APR number, analyze for patterns, and report your findings back to the TeamLeader. Do not analyze any other metric type.",
-                toolset=sup_toolset,
-                can_delegate=False,
-            )
-
-            agent_team.add_agent(
-                model=model_deployment_name,
-                name="DUP agent",
-                instructions="You are the DUP agent. Only analyze DUP metrics. When assigned a task, use the get_dup_metrics_for_apr function with the given APR number, analyze for patterns, and report your findings back to the TeamLeader. Do not analyze any other metric type.",
-                toolset=dup_toolset,
                 can_delegate=False,
             )
 

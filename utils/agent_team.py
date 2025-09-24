@@ -153,6 +153,7 @@ class AgentTeam:
             can_delegate=can_delegate,
         )
         self._members.append(member)
+        print("[DEBUG] Added agent:", member.name)
 
     def set_team_leader(self, model: str, name: str, instructions: str, toolset: Optional[ToolSet] = None) -> None:
         """
@@ -179,7 +180,7 @@ class AgentTeam:
 
         :param task: The task to be added.
         """
-        # print(f"[DEBUG] Adding task for agent '{task.recipient}': {task.task_description}")
+        print(f"[DEBUG] Adding task for agent '{task.recipient}': {task.task_description}")
         self._tasks.append(task)
 
     def _create_team_leader(self) -> None:
@@ -297,12 +298,6 @@ class AgentTeam:
             role="user",
             content=request,
         )
-        # Always send user input directly to TeamLeader; agent instructions will guide behavior
-        message = self._agents_client.messages.create(
-            thread_id=self._agent_thread.id,
-            role="user",
-            content=request,
-        )
         if self._team_leader and self._team_leader.agent_instance:
             run = self._agents_client.runs.create_and_process(
                 thread_id=self._agent_thread.id,
@@ -320,19 +315,22 @@ class AgentTeam:
         # After TeamLeader responds, process and execute all tasks in the queue
         while self._tasks:
             task = self._tasks.pop(0)
+            # print(f"[DEBUG]: task name: {task.task_description} being processed by {task.recipient}")
             agent_member = self._get_member_by_name(task.recipient)
             if agent_member and agent_member.agent_instance:
+                # Create a separate thread for each sub-agent to prevent cross-contamination
+                agent_thread = self._agents_client.threads.create()
                 self._agents_client.messages.create(
-                    thread_id=self._agent_thread.id,
+                    thread_id=agent_thread.id,
                     role="user",
                     content=task.task_description,
                 )
                 run = self._agents_client.runs.create_and_process(
-                    thread_id=self._agent_thread.id,
+                    thread_id=agent_thread.id,
                     agent_id=agent_member.agent_instance.id,
                 )
                 text_message = self._agents_client.messages.get_last_message_text_by_role(
-                    thread_id=self._agent_thread.id,
+                    thread_id=agent_thread.id,
                     role=MessageRole.AGENT,
                 )
                 if text_message and text_message.text:
