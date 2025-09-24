@@ -5,6 +5,7 @@
 # ------------------------------------
 import os
 import yaml  # type: ignore
+import time
 
 from opentelemetry import trace
 from opentelemetry.trace import Span  # noqa: F401 # pylint: disable=unused-import
@@ -318,6 +319,9 @@ class AgentTeam:
             # print(f"[DEBUG]: task name: {task.task_description} being processed by {task.recipient}")
             agent_member = self._get_member_by_name(task.recipient)
             if agent_member and agent_member.agent_instance:
+                # Add small delay between agents to prevent rate limiting
+                time.sleep(10)
+                
                 # Create a separate thread for each sub-agent to prevent cross-contamination
                 agent_thread = self._agents_client.threads.create()
                 self._agents_client.messages.create(
