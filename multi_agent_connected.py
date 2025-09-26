@@ -65,7 +65,7 @@ with project_client:
             
             ppa_agent = agents_client.create_agent(
                 model=model_deployment_name,
-                name="PPA Agent", 
+                name="PPA_Agent", 
                 instructions="""You are the PPA Agent, a Map and Geospatial expert who analyzes POI Positional Accuracy (PPA) metrics only.
                 When given an APR number, use the get_ppa_metrics_for_apr function with that APR number to fetch data,
                 analyze the patterns, and provide a concise summary of your findings.
@@ -81,7 +81,7 @@ with project_client:
             
             sup_agent = agents_client.create_agent(
                 model=model_deployment_name,
-                name="SUP Agent",
+                name="SUP_Agent",
                 instructions="""You are the SUP Agent, a Map and Geospatial expert who analyzes Superfluous (SUP) metrics only.
                 When given an APR number, use the get_sup_metrics_for_apr function with that APR number to fetch data,
                 analyze the patterns, and provide a concise summary of your findings.
@@ -97,7 +97,7 @@ with project_client:
             
             dup_agent = agents_client.create_agent(
                 model=model_deployment_name,
-                name="DUP Agent",
+                name="DUP_Agent",
                 instructions="""You are the DUP Agent, a Map and Geospatial expert who analyzes Duplicate (DUP) metrics only.
                 When given an APR number, use the get_dup_metrics_for_apr function with that APR number to fetch data,
                 analyze the patterns, and provide a concise summary of your findings.
@@ -134,8 +134,8 @@ with project_client:
                 name=dup_agent.name, 
                 description="Analyzes Duplicate (DUP) metrics for a given APR number"
             )
-            
-            # Create toolset with function tools
+
+            # Create toolset with only function tools (NOT connected agents)
             team_leader_toolset = ToolSet()
             team_leader_toolset.add(team_leader_functions)
 
@@ -170,7 +170,7 @@ with project_client:
                 
                 IMPORTANT: Call each connected agent tool one by one with the APR number as the input. 
                 Each tool expects just the APR number (e.g., "121") as input.""",
-                tools=connected_pav_agent.definitions
+                tools=connected_pav_agent.definitions + connected_ppa_agent.definitions + connected_sup_agent.definitions + connected_dup_agent.definitions
             )
 
             print(f"\nAPR Analysis Team assembled with connected agents.")
