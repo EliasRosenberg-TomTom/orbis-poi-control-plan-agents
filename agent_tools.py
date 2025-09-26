@@ -1,6 +1,8 @@
 from jira.JiraAPI import JiraAPI
 from github.GithubAPI import GithubAPI
 from databricks.DatabricksAPI import DatabricksAPI
+import pandas as pd
+import os
 
 # Wrapper functions for agent tools.
 def get_jira_ticket_description(issue_id_or_key: str) -> str:
@@ -184,3 +186,40 @@ def get_dup_metrics_for_apr(aprNumber: int) -> str:
     table = "issue_list"
     statement = f"select country, definitiontag, diff_absolute FROM {catalog}.{schema}.{table} WHERE validation_theme = 'dup'"
     return db.execute_sql(catalog, schema, statement)
+
+def get_feature_rankings() -> str:
+    """
+    Fetches feature rankings from a CSV file to help prioritize which metric changes are significant.
+    Expected CSV columns: featurename, semanticid, definitiontag, feature_rank, importance
+    :return: A string representation of the feature rankings CSV data, or an error message.
+    """
+    try:
+        # Look for rankings CSV in the current directory or a data subdirectory
+        possible_paths = [
+            "feature_rankings.csv",
+            "data/feature_rankings.csv", 
+            "../feature_rankings.csv"
+        ]
+        
+        csv_path = None
+        for path in possible_paths:
+            if os.path.exists(path):
+                csv_path = path
+                break
+        
+        if csv_path is None:
+            return "Error: feature_rankings.csv not found. Please ensure the file exists in the project directory."
+        
+        df = pd.read_csv(csv_path)
+        
+        # Validate expected columns exist
+        required_cols = ['featurename', 'semanticid', 'definitiontag', 'feature_rank', 'importance']
+        missing_cols = [col for col in required_cols if col not in df.columns]
+        if missing_cols:
+            return f"Error: Missing required columns in feature_rankings.csv: {missing_cols}"
+        
+        # Convert to string format for agent consumption
+        return f"Feature Rankings Data ({len(df)} entries):\n" + df.to_string(index=False)
+        
+    except Exception as e:
+        return f"Error reading feature rankings CSV: {e}"
