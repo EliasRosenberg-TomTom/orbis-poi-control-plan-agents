@@ -38,14 +38,23 @@ team_leader_function_set: Set = {
 
 with project_client:
     agents_client = project_client.agents
+    
+    # Enable auto function calls for all functions
+    agents_client.enable_auto_function_calls({
+        get_jira_ticket_description, get_pull_request_body, get_pull_request_title,
+        get_control_plan_metrics_from_pr_comment, get_jira_ticket_title, 
+        get_jira_ticket_release_notes, get_jira_ticket_xlsx_attachment, 
+        get_jira_ticket_attachments, get_PRs_from_apr,
+        get_pav_metrics_for_apr, get_ppa_metrics_for_apr, 
+        get_sup_metrics_for_apr, get_dup_metrics_for_apr
+    })
+    
     model_deployment_name = os.getenv("MODEL_DEPLOYMENT_NAME")
 
     if model_deployment_name is not None:
         with agents_client:
             # Create individual metric agents
             pav_functions = FunctionTool(functions={get_pav_metrics_for_apr})
-            pav_toolset = ToolSet()
-            pav_toolset.add(pav_functions)
             
             pav_agent = agents_client.create_agent(
                 model=model_deployment_name,
@@ -56,12 +65,10 @@ with project_client:
                 Focus on significant patterns, outliers, and trends in the PAV data.
                 Always mention how many rows of data you analyzed in your response.
                 Do not analyze any other metric types.""",
-                toolset=pav_toolset
+                tools=pav_functions.definitions
             )
 
             ppa_functions = FunctionTool(functions={get_ppa_metrics_for_apr})
-            ppa_toolset = ToolSet()
-            ppa_toolset.add(ppa_functions)
             
             ppa_agent = agents_client.create_agent(
                 model=model_deployment_name,
@@ -72,12 +79,10 @@ with project_client:
                 Focus on significant patterns, outliers, and trends in the PPA data.
                 Always mention how many rows of data you analyzed in your response.
                 Do not analyze any other metric types.""",
-                toolset=ppa_toolset
+                tools=ppa_functions.definitions
             )
 
             sup_functions = FunctionTool(functions={get_sup_metrics_for_apr})
-            sup_toolset = ToolSet()
-            sup_toolset.add(sup_functions)
             
             sup_agent = agents_client.create_agent(
                 model=model_deployment_name,
@@ -88,12 +93,10 @@ with project_client:
                 Focus on significant patterns, outliers, and trends in the SUP data.
                 Always mention how many rows of data you analyzed in your response.
                 Do not analyze any other metric types.""",
-                toolset=sup_toolset
+                tools=sup_functions.definitions
             )
 
             dup_functions = FunctionTool(functions={get_dup_metrics_for_apr})
-            dup_toolset = ToolSet()
-            dup_toolset.add(dup_functions)
             
             dup_agent = agents_client.create_agent(
                 model=model_deployment_name,
@@ -104,40 +107,18 @@ with project_client:
                 Focus on significant patterns, outliers, and trends in the DUP data.
                 Always mention how many rows of data you analyzed in your response.
                 Do not analyze any other metric types.""",
-                toolset=dup_toolset
+                tools=dup_functions.definitions
             )
 
             # Create team leader with connected agent tools
             team_leader_functions = FunctionTool(functions=team_leader_function_set)
             
-            # Create connected agent tools for each metric agent
+            # Create connected agent tool for PAV agent
             connected_pav_agent = ConnectedAgentTool(
                 id=pav_agent.id, 
                 name=pav_agent.name, 
                 description="Analyzes POI Availability (PAV) metrics for a given APR number"
             )
-            
-            connected_ppa_agent = ConnectedAgentTool(
-                id=ppa_agent.id,
-                name=ppa_agent.name,
-                description="Analyzes POI Positional Accuracy (PPA) metrics for a given APR number"
-            )
-            
-            connected_sup_agent = ConnectedAgentTool(
-                id=sup_agent.id, 
-                name=sup_agent.name, 
-                description="Analyzes Superfluous (SUP) metrics for a given APR number"
-            )
-            
-            connected_dup_agent = ConnectedAgentTool(
-                id=dup_agent.id, 
-                name=dup_agent.name, 
-                description="Analyzes Duplicate (DUP) metrics for a given APR number"
-            )
-
-            # Create toolset with only function tools (NOT connected agents)
-            team_leader_toolset = ToolSet()
-            team_leader_toolset.add(team_leader_functions)
 
             team_leader = agents_client.create_agent(
                 model=model_deployment_name,
@@ -145,40 +126,30 @@ with project_client:
                 instructions=f"""You are the APR Analysis Team Leader, an expert in Map and Geospatial analysis. 
                 You lead a team of specialized metric analysis agents and coordinate comprehensive APR analysis.
                 
-                You have access to the following connected agents as tools:
+                You have access to the following connected agent as a tool:
                 - PAV_Agent: Use this to analyze POI Availability metrics for an APR
-                - PPA_Agent: Use this to analyze POI Positional Accuracy metrics for an APR  
-                - SUP_Agent: Use this to analyze Superfluous metrics for an APR
-                - DUP_Agent: Use this to analyze Duplicate metrics for an APR
 
                 You are conversational, helpful, and context-aware. For general questions, use your regular tools directly.
                 
                 When users request APR analysis (by providing an APR number like "121" or "APR-121"):
                 1. Call PAV_Agent with the APR number (e.g., "121")
-                2. Call PPA_Agent with the APR number (e.g., "121")  
-                3. Call SUP_Agent with the APR number (e.g., "121")
-                4. Call DUP_Agent with the APR number (e.g., "121")
-                5. Wait for all four agents to complete their analysis
-                6. Combine their findings into a comprehensive, well-structured markdown report with clear sections:
-                   - ## PAV Analysis (POI Availability)
-                   - ## PPA Analysis (POI Positional Accuracy) 
-                   - ## SUP Analysis (Superfluous)
-                   - ## DUP Analysis (Duplicates)
+                2. Wait for the agent to complete its analysis  
+                3. Provide a well-structured markdown report with the findings
                 
-                Format the final report professionally for easy copying and analysis. Do not just concatenate responses - 
-                synthesize and organize the findings into a cohesive report.
+                Format the final report professionally for easy copying and analysis.
                 
-                IMPORTANT: Call each connected agent tool one by one with the APR number as the input. 
-                Each tool expects just the APR number (e.g., "121") as input.""",
-                tools=connected_pav_agent.definitions + connected_ppa_agent.definitions + connected_sup_agent.definitions + connected_dup_agent.definitions
+                IMPORTANT: Call the PAV_Agent connected agent tool with the APR number as the input. 
+                The tool expects just the APR number (e.g., "121") as input.""",
+                tools=team_leader_functions.definitions + connected_pav_agent.definitions
             )
 
             print(f"\nAPR Analysis Team assembled with connected agents.")
-            print("Team Leader connected to PAV, PPA, SUP, and DUP agents.")
+            print("Team Leader connected to PAV agent only (for testing).")
             print("Type 'exit' or 'quit' to end the conversation.")
 
             # Create thread for conversation
             thread = agents_client.threads.create()
+            print(f"Created thread for team leader, ID: {thread.id}")
 
             try:
                 while True:
@@ -195,17 +166,41 @@ with project_client:
                     )
 
                     # Process with team leader (connected agents will be automatically coordinated)
+                    print(f"\n🔄 Processing request with Team Leader...")
                     run = agents_client.runs.create_and_process(
                         thread_id=thread.id,
                         agent_id=team_leader.id
                     )
+                    print(f"✅ Run completed - ID: {run.id}, Status: {run.status}")
 
-                    # Get and display response
-                    messages = agents_client.messages.list(thread_id=thread.id)
-                    for message in messages:
+                    # Get all messages to see the conversation flow
+                    messages = list(agents_client.messages.list(thread_id=thread.id))
+                    print(f"\n📋 Messages in thread ({len(messages)} total):")
+                    
+                    # Show last few messages
+                    recent_messages = messages[:5] if len(messages) > 5 else messages  # Last 5 messages
+                    for i, message in enumerate(reversed(recent_messages)):
+                        role_emoji = "👤" if message.role == MessageRole.USER else "🤖"
+                        content = message.content[0].text.value if message.content else "No content"
+                        print(f"  {role_emoji} {message.role}: {content[:100]}...")
+                        
+                        # Try to identify the agent
                         if message.role == MessageRole.AGENT:
-                            print(f"Team Leader: {message.content[0].text.value}")
-                            break
+                            if hasattr(message, 'assistant_id'):
+                                if message.assistant_id == pav_agent.id:
+                                    print(f"      ^^ This was from PAV Agent (ID: {pav_agent.id})")
+                                elif message.assistant_id == team_leader.id:
+                                    print(f"      ^^ This was from Team Leader (ID: {team_leader.id})")
+
+                    # Display the final response prominently
+                    if messages:
+                        final_message = messages[0]  # Most recent message
+                        if final_message.role == MessageRole.AGENT:
+                            print(f"\n📊 Final Response:")
+                            print(f"{final_message.content[0].text.value}")
+                            print(f"\n{'='*80}")
+
+                    print(f"\n")
 
             finally:
                 # Clean up agents
