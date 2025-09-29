@@ -168,7 +168,7 @@ def get_ppa_metrics_for_apr(aprNumber: int) -> str:
     catalog = "pois_aqua_dev"
     schema = f"run_apr_{aprNumber}"
     table = "issue_list"
-    statement = f"select country, definitiontag, diff_absolute FROM {catalog}.{schema}.{table} WHERE validation_theme = 'ppa' limit 100"
+    statement = f"select country, definitiontag, diff_absolute FROM {catalog}.{schema}.{table} WHERE validation_theme = 'ppa'"
     return db.execute_sql(catalog, schema, statement)
 
 def get_sup_metrics_for_apr(aprNumber: int) -> str:
@@ -176,7 +176,7 @@ def get_sup_metrics_for_apr(aprNumber: int) -> str:
     catalog = "pois_aqua_dev"
     schema = f"run_apr_{aprNumber}"
     table = "issue_list"
-    statement = f"select country, definitiontag, diff_absolute FROM {catalog}.{schema}.{table} WHERE validation_theme = 'sup' limit 100"
+    statement = f"select country, definitiontag, diff_absolute FROM {catalog}.{schema}.{table} WHERE validation_theme = 'sup'"
     return db.execute_sql(catalog, schema, statement)
 
 def get_dup_metrics_for_apr(aprNumber: int) -> str:
@@ -184,7 +184,7 @@ def get_dup_metrics_for_apr(aprNumber: int) -> str:
     catalog = "pois_aqua_dev"
     schema = f"run_apr_{aprNumber}"
     table = "issue_list"
-    statement = f"select country, definitiontag, diff_absolute FROM {catalog}.{schema}.{table} WHERE validation_theme = 'dup' limit 100"
+    statement = f"select country, definitiontag, diff_absolute FROM {catalog}.{schema}.{table} WHERE validation_theme = 'dup'"
     return db.execute_sql(catalog, schema, statement)
 
 def get_feature_rankings() -> str:
