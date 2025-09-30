@@ -17,6 +17,9 @@ from agent_tools import (
     get_dup_metrics_for_apr,
     get_PRs_from_apr, get_pull_request_title, get_feature_rankings
 )
+from agent import Agent
+from metric_instructions import build_metric_agent_instructions
+from coordinator_instructions import get_coordinator_instructions
 
 load_dotenv()
 
@@ -47,233 +50,54 @@ class ManualOrchestration:
         """Create all 5 agents: PAV, PPA, SUP, DUP, and Coordinator"""
         print("🔧 Creating specialized metric agents...")
         
-        # Create PAV agent with JIRA/PR correlation tools
-        pav_functions = FunctionTool(functions={
-            get_pav_metrics_for_apr, get_PRs_from_apr, get_pull_request_title, 
-            get_jira_ticket_title, get_jira_ticket_description, get_feature_rankings
-        })
-        self.agents['pav'] = self.agents_client.create_agent(
-            model=self.model_deployment_name,
+        # Create PAV agent
+        pav_agent = Agent(
             name="PAV_Agent",
-            instructions="""You are the PAV Agent, a Map and Geospatial expert specialized in POI Availability (PAV) metrics analysis with JIRA correlation capability.
-            
-            WORKFLOW FOR APR ANALYSIS:
-            1. **First call get_feature_rankings()** to get feature importance rankings
-            2. **Call get_pav_metrics_for_apr()** to fetch PAV metric data  
-            3. **Call get_PRs_from_apr()** to get all PRs for correlation analysis
-            4. **For significant patterns, correlate with JIRA tickets using PR tools**
-            
-            ANALYSIS PRIORITIES (using feature rankings):
-            - **High-ranked features take priority** over percentage magnitude
-            - Small changes in critical PAV features (airports, hospitals) more important than large changes in low-ranked features
-            - Complex percentages (large samples) preferred over round numbers (50%, 100% = low coverage)
-            - Show improvements first, then drops
-            
-            PATTERN ANALYSIS:
-            - Focus on patterns by country and definitiontag in validation_key
-            - Prioritize multi-country patterns in same category  
-            - Prioritize single countries affected across multiple categories
-            - Structure: country/region → PAV impact → affected category
-            
-            JIRA CORRELATION:
-            - For each significant PAV pattern, check PRs for semantic matches
-            - **Conservative linking only**: match countries/categories in validation_key with PR/JIRA content
-            - Use get_pull_request_title() and get_jira_ticket_title/description() for correlation
-            - Include MPOI ticket numbers when correlations found
-            
-            OUTPUT FORMAT:
-            - Bullet points for each pattern with metrics backing
-            - Include JIRA correlations: • [Country] → [PAV Impact] → [Category] ([MPOI-XXXX: Title] if correlated)
-            - Always mention total rows analyzed
-            - Focus exclusively on PAV metrics""",
-            tools=pav_functions.definitions
-        )
-        
-        # Create PPA agent with JIRA/PR correlation tools
-        ppa_functions = FunctionTool(functions={
-            get_ppa_metrics_for_apr, get_PRs_from_apr, get_pull_request_title,
-            get_jira_ticket_title, get_jira_ticket_description, get_feature_rankings
-        })
-        self.agents['ppa'] = self.agents_client.create_agent(
+            instructions=build_metric_agent_instructions('PAV'),
             model=self.model_deployment_name,
+            functions={get_pav_metrics_for_apr, get_PRs_from_apr, get_pull_request_title, 
+                      get_jira_ticket_title, get_jira_ticket_description, get_feature_rankings}
+        )
+        self.agents['pav'] = self.agents_client.create_agent(**pav_agent.to_create_params())
+        
+        # Create PPA agent
+        ppa_agent = Agent(
             name="PPA_Agent",
-            instructions="""You are the PPA Agent, a Map and Geospatial expert specialized in POI Positional Accuracy (PPA) metrics analysis with JIRA correlation capability.
-            
-            WORKFLOW FOR APR ANALYSIS:
-            1. **First call get_feature_rankings()** to get feature importance rankings
-            2. **Call get_ppa_metrics_for_apr()** to fetch PPA metric data
-            3. **Call get_PRs_from_apr()** to get all PRs for correlation analysis  
-            4. **For significant patterns, correlate with JIRA tickets using PR tools**
-            
-            ANALYSIS PRIORITIES (using feature rankings):
-            - **High-ranked features take priority** over percentage magnitude
-            - Small accuracy changes in critical PPA features more important than large changes in low-ranked features
-            - Complex percentages (large samples) preferred over round numbers (50%, 100% = low coverage)
-            - Show accuracy improvements first, then degradations
-            
-            PATTERN ANALYSIS:
-            - Focus on patterns by country and definitiontag in validation_key
-            - Prioritize multi-country accuracy patterns in same category
-            - Prioritize single countries with accuracy issues across multiple categories
-            - Structure: country/region → PPA impact → affected category
-            
-            JIRA CORRELATION:
-            - For each significant PPA pattern, check PRs for semantic matches
-            - **Conservative linking only**: match countries/categories in validation_key with PR/JIRA content  
-            - Look for keywords related to positioning, accuracy, coordinates, geocoding
-            - Include MPOI ticket numbers when correlations found
-            
-            OUTPUT FORMAT:
-            - Bullet points for each pattern with accuracy metrics backing
-            - Include JIRA correlations: • [Country] → [PPA Impact] → [Category] ([MPOI-XXXX: Title] if correlated)
-            - Always mention total rows analyzed
-            - Focus exclusively on PPA metrics""",
-            tools=ppa_functions.definitions
-        )
-        
-        # Create SUP agent with JIRA/PR correlation tools
-        sup_functions = FunctionTool(functions={
-            get_sup_metrics_for_apr, get_PRs_from_apr, get_pull_request_title,
-            get_jira_ticket_title, get_jira_ticket_description, get_feature_rankings
-        })
-        self.agents['sup'] = self.agents_client.create_agent(
+            instructions=build_metric_agent_instructions('PPA'),
             model=self.model_deployment_name,
-            name="SUP_Agent", 
-            instructions="""You are the SUP Agent, a Map and Geospatial expert specialized in Superfluous (SUP) metrics analysis with JIRA correlation capability.
-            
-            WORKFLOW FOR APR ANALYSIS:
-            1. **First call get_feature_rankings()** to get feature importance rankings
-            2. **Call get_sup_metrics_for_apr()** to fetch SUP metric data
-            3. **Call get_PRs_from_apr()** to get all PRs for correlation analysis
-            4. **For significant patterns, correlate with JIRA tickets using PR tools**
-            
-            ANALYSIS PRIORITIES (using feature rankings):
-            - **High-ranked features take priority** over percentage magnitude  
-            - Small SUP changes in critical features more important than large changes in low-ranked features
-            - Complex percentages (large samples) preferred over round numbers (50%, 100% = low coverage)
-            - Show superfluous reductions first (improvements), then increases (problems)
-            
-            PATTERN ANALYSIS:
-            - Focus on patterns by country and definitiontag in validation_key
-            - Prioritize multi-country superfluous patterns in same category
-            - Prioritize single countries with superfluous issues across multiple categories
-            - Structure: country/region → SUP impact → affected category
-            
-            JIRA CORRELATION:
-            - For each significant SUP pattern, check PRs for semantic matches
-            - **Conservative linking only**: match countries/categories in validation_key with PR/JIRA content
-            - Look for keywords related to data cleanup, filtering, quality improvements
-            - Include MPOI ticket numbers when correlations found
-            
-            OUTPUT FORMAT:
-            - Bullet points for each pattern with SUP metrics backing
-            - Include JIRA correlations: • [Country] → [SUP Impact] → [Category] ([MPOI-XXXX: Title] if correlated)
-            - Always mention total rows analyzed
-            - Focus exclusively on SUP metrics""",
-            tools=sup_functions.definitions
+            functions={get_ppa_metrics_for_apr, get_PRs_from_apr, get_pull_request_title,
+                      get_jira_ticket_title, get_jira_ticket_description, get_feature_rankings}
         )
+        self.agents['ppa'] = self.agents_client.create_agent(**ppa_agent.to_create_params())
         
-        # Create DUP agent with JIRA/PR correlation tools
-        dup_functions = FunctionTool(functions={
-            get_dup_metrics_for_apr, get_PRs_from_apr, get_pull_request_title,
-            get_jira_ticket_title, get_jira_ticket_description, get_feature_rankings
-        })
-        self.agents['dup'] = self.agents_client.create_agent(
+        # Create SUP agent
+        sup_agent = Agent(
+            name="SUP_Agent",
+            instructions=build_metric_agent_instructions('SUP'),
             model=self.model_deployment_name,
+            functions={get_sup_metrics_for_apr, get_PRs_from_apr, get_pull_request_title,
+                      get_jira_ticket_title, get_jira_ticket_description, get_feature_rankings}
+        )
+        self.agents['sup'] = self.agents_client.create_agent(**sup_agent.to_create_params())
+        
+        # Create DUP agent
+        dup_agent = Agent(
             name="DUP_Agent",
-            instructions="""You are the DUP Agent, a Map and Geospatial expert specialized in Duplicate (DUP) metrics analysis with JIRA correlation capability.
-            
-            WORKFLOW FOR APR ANALYSIS:
-            1. **First call get_feature_rankings()** to get feature importance rankings
-            2. **Call get_dup_metrics_for_apr()** to fetch DUP metric data
-            3. **Call get_PRs_from_apr()** to get all PRs for correlation analysis
-            4. **For significant patterns, correlate with JIRA tickets using PR tools**
-            
-            ANALYSIS PRIORITIES (using feature rankings):
-            - **High-ranked features take priority** over percentage magnitude
-            - Small DUP changes in critical features more important than large changes in low-ranked features
-            - Complex percentages (large samples) preferred over round numbers (50%, 100% = low coverage)
-            - Show duplicate reductions first (improvements), then increases (problems)
-            
-            PATTERN ANALYSIS:
-            - Focus on patterns by country and definitiontag in validation_key
-            - Prioritize multi-country duplicate patterns in same category
-            - Prioritize single countries with duplicate issues across multiple categories
-            - Structure: country/region → DUP impact → affected category
-            
-            JIRA CORRELATION:
-            - For each significant DUP pattern, check PRs for semantic matches
-            - **Conservative linking only**: match countries/categories in validation_key with PR/JIRA content
-            - Look for keywords related to deduplication, duplicate detection, data merging
-            - Include MPOI ticket numbers when correlations found
-            
-            OUTPUT FORMAT:
-            - Bullet points for each pattern with DUP metrics backing
-            - Include JIRA correlations: • [Country] → [DUP Impact] → [Category] ([MPOI-XXXX: Title] if correlated)
-            - Always mention total rows analyzed
-            - Focus exclusively on DUP metrics""",
-            tools=dup_functions.definitions
-        )
-        
-        # Create Coordinator agent with full analysis workflow capability
-        general_functions = FunctionTool(functions=self.general_function_set)
-        self.agents['coordinator'] = self.agents_client.create_agent(
+            instructions=build_metric_agent_instructions('DUP'),
             model=self.model_deployment_name,
-            name="APR_Coordinator",
-            instructions="""You are the APR Analysis Coordinator, an expert in synthesizing multi-agent analysis into comprehensive release notes.
-
-            WORKFLOW FOR APR SYNTHESIS:
-            1. **Call get_feature_rankings()** to get feature importance context
-            2. **Call get_PRs_from_apr()** to scan for BigRun PRs
-            3. **Receive and synthesize analyses from PAV, PPA, SUP, DUP agents** (they handle their own JIRA correlations)
-            4. **Focus on cross-metric patterns and BigRun detection**
-
-            SYNTHESIS RESPONSIBILITIES:
-            - **Cross-metric pattern detection**: Look for themes across PAV/PPA/SUP/DUP findings
-            - **Feature ranking prioritization**: Use rankings to order importance of findings
-            - **BigRun PR detection**: Exhaustively scan for 'conf(BR):' prefixed PRs
-            - **Release note structuring**: Organize individual agent findings into coherent narrative
-            
-            BIGRUN PR DETECTION:
-            - **Exhaustively scan ALL PRs** (direct and bundled) for 'conf(BR):' prefix
-            - Include bundled PRs from daily rollups/RCs
-            - List ALL BigRun PRs in dedicated section with full titles
-
-            OUTPUT FORMAT (markdown):
-            ```
-            # APR [NUMBER] Release Notes
-
-            ## Feature Rankings Context
-            [Top 10 ranked features for priority context]
-
-            ## Key Improvements (by Priority)
-            [Synthesized improvements from all agents, ordered by feature ranking]
-            • PAV: [findings with JIRA correlations from agent]
-            • PPA: [findings with JIRA correlations from agent]
-            • SUP: [findings with JIRA correlations from agent]
-            • DUP: [findings with JIRA correlations from agent]
-
-            ## Key Issues (by Priority)
-            [Synthesized issues from all agents, ordered by feature ranking]
-
-            ## Cross-Metric Patterns
-            [Patterns spanning multiple metric types - your unique synthesis]
-            
-            ## BigRun PRs Included
-            [All conf(BR): PRs with full titles]
-            ```
-
-            SYNTHESIS STANDARDS:
-            - **Don't duplicate JIRA correlation** - agents provide that
-            - **Focus on cross-cutting themes** across metric types
-            - **Prioritize by feature rankings** not percentage magnitude
-            - **Identify multi-country or multi-category patterns**
-            - **Maintain quantitative focus** with agent-provided data
-            - **Be the orchestrator, not the analyzer**
-
-            You are conversational for general questions but follow this synthesis methodology for APR coordination.""",
-            tools=general_functions.definitions
+            functions={get_dup_metrics_for_apr, get_PRs_from_apr, get_pull_request_title,
+                      get_jira_ticket_title, get_jira_ticket_description, get_feature_rankings}
         )
+        self.agents['dup'] = self.agents_client.create_agent(**dup_agent.to_create_params())
+        
+        # Create Coordinator agent
+        coordinator_config = Agent(
+            name="APR_Coordinator",
+            instructions=get_coordinator_instructions(),
+            model=self.model_deployment_name,
+            functions=self.general_function_set
+        )
+        self.agents['coordinator'] = self.agents_client.create_agent(**coordinator_config.to_create_params())
         
         # Create threads for each agent
         for agent_type in self.agents.keys():
