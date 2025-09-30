@@ -55,8 +55,9 @@ class ManualOrchestration:
             name="PAV_Agent",
             instructions=build_metric_agent_instructions('PAV'),
             model=self.model_deployment_name,
-            functions={get_pav_metrics_for_apr, get_PRs_from_apr, get_pull_request_title, 
-                      get_jira_ticket_title, get_jira_ticket_description, get_feature_rankings}
+            functions={get_pav_metrics_for_apr, get_pull_request_title, 
+                      get_jira_ticket_title, get_jira_ticket_description, get_feature_rankings},
+            metadata={"timeout": 360}  # 6 minute timeout
         )
         self.agents['pav'] = self.agents_client.create_agent(**pav_agent.to_create_params())
         
@@ -65,8 +66,9 @@ class ManualOrchestration:
             name="PPA_Agent",
             instructions=build_metric_agent_instructions('PPA'),
             model=self.model_deployment_name,
-            functions={get_ppa_metrics_for_apr, get_PRs_from_apr, get_pull_request_title,
-                      get_jira_ticket_title, get_jira_ticket_description, get_feature_rankings}
+            functions={get_ppa_metrics_for_apr, get_pull_request_title,
+                      get_jira_ticket_title, get_jira_ticket_description, get_feature_rankings},
+            metadata={"timeout": 360}  # 6 minute timeout
         )
         self.agents['ppa'] = self.agents_client.create_agent(**ppa_agent.to_create_params())
         
@@ -75,8 +77,9 @@ class ManualOrchestration:
             name="SUP_Agent",
             instructions=build_metric_agent_instructions('SUP'),
             model=self.model_deployment_name,
-            functions={get_sup_metrics_for_apr, get_PRs_from_apr, get_pull_request_title,
-                      get_jira_ticket_title, get_jira_ticket_description, get_feature_rankings}
+            functions={get_sup_metrics_for_apr, get_pull_request_title,
+                      get_jira_ticket_title, get_jira_ticket_description, get_feature_rankings},
+            metadata={"timeout": 360}  # 6 minute timeout
         )
         self.agents['sup'] = self.agents_client.create_agent(**sup_agent.to_create_params())
         
@@ -85,8 +88,9 @@ class ManualOrchestration:
             name="DUP_Agent",
             instructions=build_metric_agent_instructions('DUP'),
             model=self.model_deployment_name,
-            functions={get_dup_metrics_for_apr, get_PRs_from_apr, get_pull_request_title,
-                      get_jira_ticket_title, get_jira_ticket_description, get_feature_rankings}
+            functions={get_dup_metrics_for_apr, get_pull_request_title,
+                      get_jira_ticket_title, get_jira_ticket_description, get_feature_rankings},
+            metadata={"timeout": 360}  # 6 minute timeout
         )
         self.agents['dup'] = self.agents_client.create_agent(**dup_agent.to_create_params())
         
@@ -105,36 +109,79 @@ class ManualOrchestration:
             
         print(f"✅ Created {len(self.agents)} agents successfully")
         
-    def run_metric_analysis(self, apr_number: str, agent_type: str) -> str:
-        """Run analysis for a specific metric agent"""
+    def run_metric_analysis(self, apr_number: str, agent_type: str, retries: int = 2) -> str:
+        """Run analysis for a specific metric agent with retry logic"""
         agent = self.agents[agent_type]
         thread = self.threads[agent_type]
         
-        print(f"🔄 Running {agent_type.upper()} analysis for APR {apr_number}...")
-        
-        # Send message to the specific agent
-        self.agents_client.messages.create(
-            thread_id=thread.id,
-            role="user",
-            content=f"Please analyze APR {apr_number} using your specialized metric analysis function."
-        )
-        
-        # Process the analysis
-        run = self.agents_client.runs.create_and_process(
-            thread_id=thread.id,
-            agent_id=agent.id
-        )
-        
-        # Get the response
-        messages = list(self.agents_client.messages.list(thread_id=thread.id))
-        if messages and messages[0].role == MessageRole.AGENT:
-            result = messages[0].content[0].text.value
-            print(f"✅ {agent_type.upper()} analysis completed ({len(result)} characters)")
-            return result
-        else:
-            error_msg = f"❌ {agent_type.upper()} agent failed to provide analysis"
-            print(error_msg)
-            return error_msg
+        for attempt in range(retries + 1):
+            try:
+                if attempt > 0:
+                    print(f"🔄 Retry {attempt}: Running {agent_type.upper()} analysis for APR {apr_number}...")
+                else:
+                    print(f"🔄 Running {agent_type.upper()} analysis for APR {apr_number}...")
+                
+                # Send message to the specific agent
+                message = self.agents_client.messages.create(
+                    thread_id=thread.id,
+                    role="user",
+                    content=f"Please analyze APR {apr_number} using your specialized metric analysis function. Focus on the most significant patterns to avoid timeout issues."
+                )
+                print(f"📤 Sent message to {agent_type.upper()} agent (Thread: {thread.id})")
+                
+                # Use the timeout configured in agent metadata (360 seconds = 6 minutes)
+                timeout = 360  # All agents configured with 6-minute timeout
+                
+                print(f"⏳ Starting {agent_type.upper()} run with {timeout}s timeout...")
+                run = self.agents_client.runs.create_and_process(
+                    thread_id=thread.id,
+                    agent_id=agent.id,
+                    timeout=timeout
+                )
+                print(f"✅ {agent_type.upper()} run completed successfully")
+                print(f"🔍 [MESSAGE DEBUG] Run status: {run.status}")
+                print(f"🔍 [MESSAGE DEBUG] Run ID: {run.id}")
+                
+                # Get the response
+                print(f"🔍 [MESSAGE DEBUG] Retrieving messages from thread {thread.id}...")
+                messages = list(self.agents_client.messages.list(thread_id=thread.id))
+                print(f"🔍 [MESSAGE DEBUG] Total messages in thread: {len(messages)}")
+                
+                for i, msg in enumerate(messages[:5]):  # Show first 5 messages
+                    print(f"🔍 [MESSAGE DEBUG] Message {i}: Role={msg.role}, Content length={len(msg.content) if msg.content else 0}")
+                    if hasattr(msg, 'created_at'):
+                        print(f"🔍 [MESSAGE DEBUG] Message {i} created at: {msg.created_at}")
+                
+                if messages and messages[0].role == MessageRole.AGENT:
+                    result = messages[0].content[0].text.value
+                    print(f"✅ {agent_type.upper()} analysis completed ({len(result)} characters)")
+                    return result
+                else:
+                    if messages:
+                        latest_msg = messages[0]
+                        print(f"🔍 [MESSAGE DEBUG] Latest message role: {latest_msg.role}")
+                        print(f"🔍 [MESSAGE DEBUG] Latest message content: {latest_msg.content[:200] if latest_msg.content else 'None'}...")
+                    else:
+                        print(f"🔍 [MESSAGE DEBUG] No messages found in thread!")
+                    
+                    if attempt < retries:
+                        print(f"⚠️ No response from {agent_type.upper()} agent, retrying...")
+                        time.sleep(5)  # Brief pause before retry
+                        continue
+                    else:
+                        error_msg = f"❌ {agent_type.upper()} agent failed to provide analysis after {retries + 1} attempts"
+                        print(error_msg)
+                        return error_msg
+                        
+            except Exception as e:
+                if attempt < retries:
+                    print(f"⚠️ {agent_type.upper()} agent error: {e}, retrying...")
+                    time.sleep(5)  # Brief pause before retry
+                    continue
+                else:
+                    error_msg = f"❌ {agent_type.upper()} agent execution failed after {retries + 1} attempts: {e}"
+                    print(error_msg)
+                    return error_msg
             
     def create_final_report(self, apr_number: str, pav_result: str, ppa_result: str, 
                            sup_result: str, dup_result: str) -> str:
@@ -147,19 +194,19 @@ class ManualOrchestration:
         # Create comprehensive prompt with all results
         prompt = f"""Please create a comprehensive APR {apr_number} analysis report using the following individual metric analyses:
 
-PAV AGENT ANALYSIS:
-{pav_result}
+        PAV AGENT ANALYSIS:
+        {pav_result}
 
-PPA AGENT ANALYSIS:
-{ppa_result}
+        PPA AGENT ANALYSIS:
+        {ppa_result}
 
-SUP AGENT ANALYSIS:
-{sup_result}
+        SUP AGENT ANALYSIS:
+        {sup_result}
 
-DUP AGENT ANALYSIS:
-{dup_result}
+        DUP AGENT ANALYSIS:
+        {dup_result}
 
-Please synthesize these into a professional markdown report with the structure specified in your instructions."""
+        Please synthesize these into a professional markdown report with the structure specified in your instructions."""
         
         # Send to coordinator
         self.agents_client.messages.create(

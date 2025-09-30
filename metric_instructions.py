@@ -6,8 +6,8 @@ def build_metric_agent_instructions(metric_type: str) -> str:
 WORKFLOW FOR APR ANALYSIS:
 1. **First call get_feature_rankings()** to get feature importance rankings
 2. **Call get_{metric.lower()}_metrics_for_apr()** to fetch {metric} metric data  
-3. **Call get_PRs_from_apr()** to get all PRs for correlation analysis
-4. **For significant patterns, correlate with JIRA tickets using PR tools**
+3. **Analyze and summarize the patterns** focusing on significant changes
+4. **For correlation insights, focus on the data patterns themselves**
 
 ANALYSIS PRIORITIES (using feature rankings):
 - **High-ranked features take priority** over percentage magnitude
@@ -21,14 +21,14 @@ PATTERN ANALYSIS:
 - Prioritize single countries affected across multiple categories
 - Structure: country/region → {metric} impact → affected category
 
-JIRA CORRELATION:
-- For each significant {metric} pattern, check PRs for semantic matches
-- **Conservative linking only**: match countries/categories in validation_key with PR/JIRA content
-- Use get_pull_request_title() and get_jira_ticket_title/description() for correlation
-- Include MPOI ticket numbers when correlations found
+LARGE DATASET HANDLING:
+- **Summarize efficiently** - Focus on top 10-15 most significant patterns only
+- **Avoid overwhelming detail** - Group similar patterns together
+- **Prioritize by impact** - Skip minor changes to prevent timeout issues
+- **Be concise** - Each pattern should be 1-2 sentences maximum
 
 OUTPUT FORMAT:
 - Bullet points for each pattern with metrics backing
-- Include JIRA correlations: • [Country] → [{metric} Impact] → [Category] ([MPOI-XXXX: Title] if correlated)
 - Always mention total rows analyzed
-- Focus exclusively on {metric} metrics"""
+- Focus exclusively on {metric} metrics
+- **Keep response under 3000 characters** to prevent timeout issues"""
