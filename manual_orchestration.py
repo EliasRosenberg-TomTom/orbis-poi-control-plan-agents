@@ -192,7 +192,13 @@ class ManualOrchestration:
         thread = self.threads['coordinator']
         
         # Create comprehensive prompt with all results
-        prompt = f"""Please create a comprehensive APR {apr_number} analysis report using the following individual metric analyses:
+        prompt = f"""MANDATORY: You MUST execute your workflow step-by-step for APR {apr_number}:
+
+        1. FIRST: Call get_feature_rankings() 
+        2. SECOND: Call get_PRs_from_apr() to get ALL PRs
+        3. THIRD: For each PR, call get_pull_request_title() to extract MPOI tickets
+        4. FOURTH: For each MPOI ticket, call get_jira_ticket_title(), get_jira_ticket_description(), get_jira_ticket_attachments() to gather as much context around the purpose of the ticket and country/category focus if it is explained. 
+        5. FIFTH: Analyze these agent findings and link to JIRA tickets:
 
         PAV AGENT ANALYSIS:
         {pav_result}
@@ -206,19 +212,22 @@ class ManualOrchestration:
         DUP AGENT ANALYSIS:
         {dup_result}
 
-        Please synthesize these into a professional markdown report with the structure specified in your instructions."""
+        CRITICAL: You must find and link MPOI tickets to patterns wherever possible. Explain your linking logic for each release note you create."""
         
         # Send to coordinator
+        print("📤 Sending synthesis request to Coordinator...")
         self.agents_client.messages.create(
             thread_id=thread.id,
             role="user",
             content=prompt
         )
         
-        # Process final report
+        # Process final report with extended timeout for JIRA analysis
+        print("⏳ Coordinator analyzing patterns and linking JIRA tickets...")
         run = self.agents_client.runs.create_and_process(
             thread_id=thread.id,
-            agent_id=coordinator.id
+            agent_id=coordinator.id,
+            timeout=600  # 10 minutes for comprehensive JIRA analysis
         )
         
         # Get final report
