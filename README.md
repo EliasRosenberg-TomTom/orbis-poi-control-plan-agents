@@ -10,6 +10,9 @@ This system uses Azure AI Agents to analyze map data quality metrics and correla
 - **1 Coordinator Agent**: Synthesizes findings and links patterns to JIRA tickets
 - **Multi-API Integration**: Connects to Databricks, JIRA, and GitHub APIs
 
+## Structure
+
+![system img](./assets/system.png)
 
 ## Prerequisites
 
