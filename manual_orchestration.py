@@ -127,43 +127,23 @@ class ManualOrchestration:
                     role="user",
                     content=f"Please analyze APR {apr_number} using your specialized metric analysis function. Focus on the most significant patterns to avoid timeout issues."
                 )
-                print(f"📤 Sent message to {agent_type.upper()} agent (Thread: {thread.id})")
                 
                 # Use the timeout configured in agent metadata (360 seconds = 6 minutes)
                 timeout = 360  # All agents configured with 6-minute timeout
-                
-                print(f"⏳ Starting {agent_type.upper()} run with {timeout}s timeout...")
                 run = self.agents_client.runs.create_and_process(
                     thread_id=thread.id,
                     agent_id=agent.id,
                     timeout=timeout
                 )
-                print(f"✅ {agent_type.upper()} run completed successfully")
-                print(f"🔍 [MESSAGE DEBUG] Run status: {run.status}")
-                print(f"🔍 [MESSAGE DEBUG] Run ID: {run.id}")
                 
                 # Get the response
-                print(f"🔍 [MESSAGE DEBUG] Retrieving messages from thread {thread.id}...")
                 messages = list(self.agents_client.messages.list(thread_id=thread.id))
-                print(f"🔍 [MESSAGE DEBUG] Total messages in thread: {len(messages)}")
-                
-                for i, msg in enumerate(messages[:5]):  # Show first 5 messages
-                    print(f"🔍 [MESSAGE DEBUG] Message {i}: Role={msg.role}, Content length={len(msg.content) if msg.content else 0}")
-                    if hasattr(msg, 'created_at'):
-                        print(f"🔍 [MESSAGE DEBUG] Message {i} created at: {msg.created_at}")
                 
                 if messages and messages[0].role == MessageRole.AGENT:
                     result = messages[0].content[0].text.value
-                    print(f"✅ {agent_type.upper()} analysis completed ({len(result)} characters)")
+                    print(f"✅ {agent_type.upper()} analysis completed")
                     return result
                 else:
-                    if messages:
-                        latest_msg = messages[0]
-                        print(f"🔍 [MESSAGE DEBUG] Latest message role: {latest_msg.role}")
-                        print(f"🔍 [MESSAGE DEBUG] Latest message content: {latest_msg.content[:200] if latest_msg.content else 'None'}...")
-                    else:
-                        print(f"🔍 [MESSAGE DEBUG] No messages found in thread!")
-                    
                     if attempt < retries:
                         print(f"⚠️ No response from {agent_type.upper()} agent, retrying...")
                         time.sleep(5)  # Brief pause before retry
@@ -191,14 +171,11 @@ class ManualOrchestration:
         coordinator = self.agents['coordinator']
         thread = self.threads['coordinator']
         
-        # Create comprehensive prompt with all results
-        prompt = f"""MANDATORY: You MUST execute your workflow step-by-step for APR {apr_number}:
+        # Provide data to coordinator without redundant instructions
+        # The coordinator already knows its workflow from coordinator_instructions.py
+        prompt = f"""Please analyze and synthesize the results for APR {apr_number}.
 
-        1. FIRST: Call get_feature_rankings() 
-        2. SECOND: Call get_PRs_from_apr() to get ALL PRs
-        3. THIRD: For each PR, call get_pull_request_title() to extract MPOI tickets
-        4. FOURTH: For each MPOI ticket, call get_jira_ticket_title(), get_jira_ticket_description(), get_jira_ticket_attachments() to gather as much context around the purpose of the ticket and country/category focus if it is explained. 
-        5. FIFTH: Analyze these agent findings and link to JIRA tickets:
+        Here are the metric analysis findings from the specialized agents:
 
         PAV AGENT ANALYSIS:
         {pav_result}
@@ -212,10 +189,9 @@ class ManualOrchestration:
         DUP AGENT ANALYSIS:
         {dup_result}
 
-        CRITICAL: You must find and link MPOI tickets to patterns wherever possible. Explain your linking logic for each release note you create, and utilize the ticket descriptions and titles to enhance the release note and make it sound like the examples provided in your instructions."""
+        Please create your comprehensive analysis following your instructions."""
         
         # Send to coordinator
-        print("📤 Sending synthesis request to Coordinator...")
         self.agents_client.messages.create(
             thread_id=thread.id,
             role="user",
@@ -240,10 +216,6 @@ class ManualOrchestration:
             return "❌ Failed to generate comprehensive report"
             
     def analyze_apr(self, apr_number: str) -> str:
-        """Run complete APR analysis across all metrics"""
-        print(f"\n🚀 Starting comprehensive APR {apr_number} analysis...")
-        print("=" * 60)
-        
         # Run all metric analyses in parallel concept (sequential for now, could be parallelized)
         results = {}
         
@@ -261,8 +233,6 @@ class ManualOrchestration:
             results['sup'], 
             results['dup']
         )
-        
-        print("=" * 60)
         print(f"🎉 APR {apr_number} analysis complete!")
         return final_report
         
