@@ -21,25 +21,21 @@ class JiraAPI:
         response = requests.get(url, auth=self.auth)
         if response.status_code == 200:
             description = response.json().get('fields', {}).get('description', '')
-            print(f"DEBUG: ticket description fetched successfully: {issue_id_or_key}")
             if not description:
                 return 'No description found'
             return description
         else:
-            print(f"DEBUG: failed to fetch ticket description: {issue_id_or_key}")
             return f'Error: {response.status_code} - {response.text}'
     
     def get_ticket_title(self, issue_id_or_key):
         url = f"{self.base_url}/{issue_id_or_key}"
         response = requests.get(url, auth=self.auth)
         if response.status_code == 200:
-            print(f"DEBUG: ticket title fetched successfully: {issue_id_or_key}")
             title = response.json().get('fields', {}).get('summary', '')
             if not title:
                 return 'No title found'
             return title
         else:
-            print(f"DEBUG: failed to fetch ticket title: {issue_id_or_key}")
             return f'Error: {response.status_code} - {response.text}'
         
     def get_ticket_release_notes(self, issue_id_or_key):
