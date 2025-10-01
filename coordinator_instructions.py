@@ -31,29 +31,25 @@ def get_coordinator_instructions() -> str:
             - Store all ticket data for cross-referencing with metric patterns
             
             **Step 2: EXPLICIT Semantic Linking Rules**
-            For each pattern from agents, check ALL JIRA tickets for these EXACT matches:
+            For each pattern from agents, check ALL JIRA tickets for tickets that could cause the metric change you see in the current pattern through semantic links and key words like Country and Category matches:
             
-            **COUNTRY MATCHES:**
-            - Pattern mentions "India" → Link if JIRA contains "India", "IND", or Indian locations
-            - Pattern mentions "Taiwan" → Link if JIRA contains "Taiwan", "TWN", "THA" 
-            - Pattern mentions "United States" → Link if JIRA contains "USA", "US", "United States"
-            - Pattern mentions "Canada" → Link if JIRA contains "Canada", "CAN", Canadian locations
+            I'm going to give you access to a tool to fetch all the PR numbers that went into that APR, and a tool to get the title of that pull request, which 
+            in the title holds the jira ticket, labeled with (MPOI-#). I'll give you other tools to fetch all the information about that jira ticket you can: title, description, body, and any attachments on the jira ticket. 
+            Since you have access to all the APR stats, and all the pull requests and their jira tickets, I want you to try and figure out if the pattern you're building a release note from.
+            could be caused by any of those PRs/jira tickets. I'd like you to be very conservative in linking these things together. For instance, if you find that there are large changes in a category like
+            Emergency/hospitals and there are pull requests and/or MPOI tickets that mention key words semantically linked to that category, or you see that there are large changes
+            across a single country like Taiwan, and there are MPOI tickets that mention altering Taiwan, please link those things. Tickets that broadly affect clustering, entity matching, or are a Big Run PR ("conf(BR)...")
+            likely affect ALL metrics changes, so they can be included as links in release notes where there is no explicit MPOI ticket that may have caused that metric change.
+            It is IMPERATIVE that you provide the explicit metrics (The number increase or decrease AND the metric type it came from (PAV, PPA, SUP, or DUP)) you found in the pattern when you explain your link inside the release note. Every release note should include in its description the improvement or
+            regression found, the exact metrics for that pattern from the metric agent, and the ticket(s) linked that could have caused that metric.
             
-            **CATEGORY MATCHES:**
-            - Pattern shows hospital changes → Link if JIRA mentions "hospital", "medical", "healthcare"
-            - Pattern shows restaurant changes → Link if JIRA mentions "restaurant", "dining", "food"
-            - Pattern shows fuel station changes → Link if JIRA mentions "fuel", "gas", "petrol", "station"
-            - Pattern shows automotive changes → Link if JIRA mentions car brands (Honda, Toyota, etc.)
             
-            **VALIDATION_KEY MATCHES:**
-            - Extract definitiontag from pattern (e.g., "amenity=restaurant")
-            - Link if JIRA mentions the category part ("restaurant", "fuel", "hospital")
-            
-            **MANDATORY:** Show your linking logic clearly: "Linked MPOI-XXXX because pattern shows [X] and ticket mentions [Y]. Use the MPOI ticket titles and descriptions to make you release note sound more human, like the examples provided."
+            **MANDATORY:** Show your linking logic clearly: "Linked MPOI-XXXX because pattern shows [X] and ticket mentions [Y]. Use the MPOI ticket titles and descriptions to make your release note sound more human, like the examples provided,
+            weaving in the descrition and title as the goal of the metric change instead of just referncing the MPOI ticket itself."
             
             **Step 3: Cross-Reference Patterns with Tickets**
             For each metric pattern from agents:
-            1. Extract key elements: country, definitiontag, category, validation_key
+            1. Extract key elements: country, definitiontag, category
             2. Search all JIRA tickets for semantic matches with these elements
             3. For matches found, verify the connection makes logical sense
             4. Include MPOI ticket number and explain the semantic link clearly
@@ -108,6 +104,10 @@ def get_coordinator_instructions() -> str:
 
             United States | POI | POI | For USA, 370 out of business flags have been added and confidence scores have been improved for 2450 POIs. Special focus on following regions: Ohio. | MPOI-7010 | Jira Automation
             
+            **CRITICAL** Here is an example of a release note you generated, whose format I really liked. ALL release notes should look like this in structure and markdown styling: 
+            - **Hong Kong | POI | POI | Coverage for "amenity=pharmacy" improved by 20%. Pharmacy is a top business-impact POI type (#32 ranking). Increased coverage is likely a result of data additions or reclassification processes. Linked MPOI-7159 because agent analysis shows improvement in HK and ticket mentions category improvements and recategorization across POIs, with geolytica delivery and mapping update. | MPOI-7159 | Agent Analysis**
+
+            - *Linking logic:* HK pharmacy coverage up (agent metric) aligns with ticket "Geolytica...category improvements...recategorization," matching pattern on country (HK is commonly included in Asia-region deliveries) and tag (pharmacy in POI categorical table).
 
             **MANDATORY OUTPUT FORMAT:**
             ```

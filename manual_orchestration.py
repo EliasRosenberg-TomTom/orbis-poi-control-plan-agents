@@ -212,7 +212,7 @@ class ManualOrchestration:
         DUP AGENT ANALYSIS:
         {dup_result}
 
-        CRITICAL: You must find and link MPOI tickets to patterns wherever possible. Explain your linking logic for each release note you create."""
+        CRITICAL: You must find and link MPOI tickets to patterns wherever possible. Explain your linking logic for each release note you create, and utilize the ticket descriptions and titles to enhance the release note and make it sound like the examples provided in your instructions."""
         
         # Send to coordinator
         print("📤 Sending synthesis request to Coordinator...")
