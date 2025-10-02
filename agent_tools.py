@@ -1,6 +1,6 @@
-from jira.JiraAPI import JiraAPI
-from github.GithubAPI import GithubAPI
-from databricks.DatabricksAPI import DatabricksAPI
+from apis.jira import JiraAPI
+from apis.github import GithubAPI
+from apis.databricks import DatabricksAPI
 import pandas as pd
 import os
 

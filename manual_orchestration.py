@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
 """
-APR Analysis System - Main Entry Point
+APR Analysis System - Command Line Tool
 
-This file has been refactored to use a clean modular architecture while
-maintaining the same interface you're used to. The heavy lifting is now done by:
-- orchestrator.APROrchestrator for agent management and analysis
-- Individual agent creation functions for modular agents
+Simple CLI tool for analyzing APRs using multi-agent system.
 
 Usage:
-    python manual_orchestration.py
+    python manual_orchestration.py <apr_number>
     
-This provides the same interactive chat interface with much cleaner code underneath.
+Examples:
+    python manual_orchestration.py 123
+    python manual_orchestration.py APR-456
 """
 
 import os
-import re
+import sys
+import argparse
 from azure.ai.projects import AIProjectClient
 from azure.identity import DefaultAzureCredential
 from dotenv import load_dotenv
@@ -34,114 +34,25 @@ from agent_tools import (
 load_dotenv()
 
 
-class APRAnalysisSystem:
-    """
-    Main APR Analysis System that provides the same interface as before
-    but uses the new modular architecture underneath.
-    """
-    
-    def __init__(self, agents_client, model_deployment_name):
-        """Initialize with new modular components."""
-        self.agents_client = agents_client
-        self.model_deployment_name = model_deployment_name
-        
-        # Use the new orchestrator for all the heavy lifting
-        self.orchestrator = APROrchestrator(agents_client, model_deployment_name)
-        
-    def create_agents(self):
-        """Create agents using the new orchestrator."""
-        return self.orchestrator.create_agents()
-    
-    def analyze_apr(self, apr_number: str) -> str:
-        """Analyze APR using the new orchestrator."""
-        return self.orchestrator.analyze_apr(apr_number)
-    
-    def chat_mode(self):
-        """Interactive chat mode - same as your original but cleaner."""
-        print(f"\n🤖 APR Analysis System Ready!")
-        print("💬 You're chatting with the APR Coordinator")
-        print("📋 For APR analysis, just provide an APR number (e.g., '121' or 'analyze APR 121')")
-        print("❓ For general questions, ask normally")
-        print("🚪 Type 'exit' or 'quit' to end\n")
-        
-        # Get coordinator agent from the orchestrator
-        coordinator_agent = self.orchestrator.agents['coordinator']
-        coordinator_thread = self.orchestrator.threads['coordinator']
-        
-        while True:
-            try:
-                user_input = input("You: ").strip()
-                if user_input.lower() in {"exit", "quit"}:
-                    print("👋 Ending conversation...")
-                    break
-                    
-                if not user_input:
-                    continue
-                
-                # Check if user is requesting APR analysis
-                apr_match = re.search(r'\b(\d{1,4})\b', user_input)
-                
-                if apr_match and any(keyword in user_input.lower() for keyword in 
-                                   ['apr', 'analyze', 'analysis', 'report', 'metrics']):
-                    # This looks like an APR analysis request
-                    apr_number = apr_match.group(1)
-                    print(f"\n🎯 Detected APR analysis request for APR {apr_number}")
-                    
-                    final_report = self.orchestrator.analyze_apr(apr_number)
-                    print(f"\n📊 Final Report:\n")
-                    print("=" * 80)
-                    print(final_report)
-                    print("=" * 80)
-                    
-                elif user_input.isdigit():
-                    # Just a number - assume it's an APR number
-                    apr_number = user_input
-                    print(f"\n🎯 Running APR analysis for APR {apr_number}")
-                    
-                    final_report = self.orchestrator.analyze_apr(apr_number)
-                    print(f"\n📊 Final Report:\n")
-                    print("=" * 80)
-                    print(final_report)
-                    print("=" * 80)
-                    
-                else:
-                    # Regular conversation - use coordinator directly
-                    print("💭 Processing with coordinator...")
-                    
-                    self.agents_client.messages.create(
-                        thread_id=coordinator_thread.id,
-                        role="user",
-                        content=user_input
-                    )
-                    
-                    run = self.agents_client.runs.create_and_process(
-                        thread_id=coordinator_thread.id,
-                        agent_id=coordinator_agent.id
-                    )
-                    
-                    messages = list(self.agents_client.messages.list(thread_id=coordinator_thread.id))
-                    if messages and messages[0].role.value == 'agent':
-                        response = messages[0].content[0].text.value
-                        print(f"\n🤖 Coordinator: {response}\n")
-                    else:
-                        print("❌ Sorry, I didn't get a response. Please try again.\n")
-                        
-            except KeyboardInterrupt:
-                print("\n👋 Goodbye!")
-                break
-            except Exception as e:
-                print(f"❌ Error: {e}")
-                print("Please try again.\n")
-    
-    def cleanup(self):
-        """Clean up agents using the new orchestrator."""
-        return self.orchestrator.cleanup()
+def format_apr_number(apr_input: str) -> str:
+    """Format APR input to consistent format."""
+    # Remove APR- prefix if present and just use the number
+    if apr_input.upper().startswith('APR-'):
+        return apr_input[4:]
+    return apr_input
 
 
-def main():
-    """Main entry point for the APR Analysis System."""
-    print("🚀 APR Analysis System")
-    print("🏗️  Powered by modular architecture")
+def analyze_apr(apr_number: str) -> int:
+    """
+    Analyze a single APR and return exit code.
+    
+    Args:
+        apr_number: APR number to analyze
+        
+    Returns:
+        int: 0 for success, 1 for error
+    """
+    print(f"🎯 Analyzing APR {apr_number}")
     print("=" * 50)
     
     # Initialize Azure AI Project client
@@ -169,35 +80,73 @@ def main():
         })
         
         model_deployment_name = os.getenv("MODEL_DEPLOYMENT_NAME")
-        
         if model_deployment_name is None:
             print("❌ Error: Please define the environment variable MODEL_DEPLOYMENT_NAME.")
             return 1
         
-        # Create the system
-        system = APRAnalysisSystem(agents_client, model_deployment_name)
+        # Create the orchestrator
+        orchestrator = APROrchestrator(agents_client, model_deployment_name)
         
         try:
-            # Deploy agents immediately
-            print("🚀 Deploying agents...")
-            system.create_agents()
+            # Deploy agents
+            orchestrator.create_agents()
             
-            # Ask if user wants to chat
-            choice = input("\n💬 Start interactive chat mode? (y/n): ").strip().lower()
-            if choice in ['y', 'yes', '']:
-                system.chat_mode()
-            else:
-                print("👍 Agents deployed and ready. You can run manual_orchestration.py again to start chatting.")
-                
+            # Run analysis
+            final_report = orchestrator.analyze_apr(apr_number)
+            
+            # Display results
+            print(final_report)
+            
         except KeyboardInterrupt:
-            print("\n👋 Interrupted by user")
+            print("\n👋 Analysis interrupted by user")
+            return 1
         except Exception as e:
-            print(f"❌ Error: {e}")
+            print(f"❌ Error during analysis: {e}")
+            return 1
         finally:
-            system.cleanup()
+            print("\n🧹 Cleaning up agents...")
+            orchestrator.cleanup()
     
     return 0
 
 
+def main():
+    """Main entry point for CLI tool."""
+    parser = argparse.ArgumentParser(
+        description="APR Analysis System - Analyze APRs using multi-agent system",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  %(prog)s 123          # Analyze APR 123
+  %(prog)s APR-456      # Analyze APR 456
+  %(prog)s 789          # Analyze APR 789
+        """
+    )
+    
+    parser.add_argument(
+        'apr_number',
+        help='APR number to analyze (with or without APR- prefix)'
+    )
+    
+    parser.add_argument(
+        '--version',
+        action='version',
+        version='APR Analysis System 1.0'
+    )
+    
+    # Parse arguments
+    if len(sys.argv) == 1:
+        parser.print_help()
+        return 1
+        
+    args = parser.parse_args()
+    
+    # Format and analyze APR
+    formatted_apr = format_apr_number(args.apr_number)
+    exit_code = analyze_apr(formatted_apr)
+    
+    return exit_code
+
+
 if __name__ == "__main__":
-    exit(main())
+    sys.exit(main())

@@ -118,7 +118,7 @@ class APROrchestrator:
                 message = self.agents_client.messages.create(
                     thread_id=thread.id,
                     role="user",
-                    content=f"Please analyze APR {apr_number} using your specialized metric analysis function. Focus on the most significant patterns to avoid timeout issues."
+                    content=f"Please analyze APR {apr_number} as per your instructions."
                 )
                 
                 # Use the timeout from agent metadata
