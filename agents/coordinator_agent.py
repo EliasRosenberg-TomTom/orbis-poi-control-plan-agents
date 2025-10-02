@@ -12,7 +12,7 @@ from agent_tools import (
     get_jira_ticket_release_notes, get_jira_ticket_xlsx_attachment, 
     get_jira_ticket_attachments, get_PRs_from_apr, get_feature_rankings
 )
-from coordinator_instructions import get_coordinator_instructions
+from agent_instructions import get_coordinator_instructions
 
 
 def create_coordinator_agent(model_deployment_name: str) -> Agent:

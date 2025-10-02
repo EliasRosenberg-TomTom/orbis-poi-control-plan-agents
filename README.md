@@ -194,8 +194,10 @@ You: 121
 
 ### Instructions & Configuration
 
-- **`metric_instructions.py`**: Instructions for PAV, PPA, SUP, DUP agents
-- **`coordinator_instructions.py`**: Instructions for coordinator agent synthesis
+- **`agent_instructions/`**: Agent instruction templates package
+  - **`metric_instructions.py`**: Instructions for PAV, PPA, SUP, DUP agents
+  - **`coordinator_instructions.py`**: Instructions for coordinator agent synthesis
+  - **`__init__.py`**: Package exports for instruction functions
 
 ### API Integrations
 
