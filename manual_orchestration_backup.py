@@ -1,63 +1,6 @@
-#!/usr/bin/env python3
-"""
-APR Analysis System - Main Entry Point
-
-This file has been refactored to use a clean modular architecture while
-maintaining the same interface you're used to. The heavy lifting is now done by:
-- orchestrator.APROrchestrator for agent management and analysis
-- Individual agent creation functions for modular agents
-
-Usage:
-    python manual_orchestration.py
-    
-This provides the same interactive chat interface with much cleaner code underneath.
-"""
-
 import os
-import re
-from azure.ai.projects import AIProjectClient
-from azure.identity import DefaultAzureCredential
-from dotenv import load_dotenv
-
-# Import new modular components
-from orchestrator.orchestrator import APROrchestrator
-from agent_tools import (
-    get_jira_ticket_description, get_pull_request_body,
-    get_control_plan_metrics_from_pr_comment, get_jira_ticket_title, 
-    get_jira_ticket_release_notes, get_jira_ticket_attachments,
-    get_jira_ticket_xlsx_attachment,
-    get_pav_metrics_for_apr, get_ppa_metrics_for_apr, 
-    get_sup_metrics_for_apr, get_dup_metrics_for_apr,
-    get_PRs_from_apr, get_pull_request_title, get_feature_rankings
-)
-
-load_dotenv()
-
-
-class APRAnalysisSystem:
-    """
-    Main APR Analysis System that provides the same interface as before
-    but uses the new modular architecture underneath.
-    """
-    
-    def __init__(self, agents_client, model_deployment_name):
-        """Initialize with new modular components."""
-        self.agents_client = agents_client
-        self.model_deployment_name = model_deployment_name
-        
-        # Use the new orchestrator for all the heavy lifting
-        self.orchestrator = APROrchestrator(agents_client, model_deployment_name)
-        
-    def create_agents(self):
-        """Create agents using the new orchestrator."""
-        return self.orchestrator.create_agents()
-    
-    def analyze_apr(self, apr_number: str) -> str:
-        """Analyze APR using the new orchestrator."""
-        return self.orchestrator.analyze_apr(apr_number)
-    
-    def chat_mode(self):
-        """Interactive chat mode - same as your original but cleaner."""
+from azure.ai.projects import AIProj    def chat_mode(self):
+        """Simple chat mode that works like the original."""
         print(f"\n🤖 APR Analysis System Ready!")
         print("💬 You're chatting with the APR Coordinator")
         print("📋 For APR analysis, just provide an APR number (e.g., '121' or 'analyze APR 121')")
@@ -79,6 +22,7 @@ class APRAnalysisSystem:
                     continue
                 
                 # Check if user is requesting APR analysis
+                import re
                 apr_match = re.search(r'\b(\d{1,4})\b', user_input)
                 
                 if apr_match and any(keyword in user_input.lower() for keyword in 
@@ -131,18 +75,61 @@ class APRAnalysisSystem:
                 break
             except Exception as e:
                 print(f"❌ Error: {e}")
-                print("Please try again.\n")
+                print("Please try again.\n")lient
+from azure.identity import DefaultAzureCredential
+from dotenv import load_dotenv
+
+# Import new modular components
+from orchestrator.orchestrator import APROrchestrator
+from utils.chat_interface import ChatInterface
+from utils.config import Config
+from agent_tools import (
+    get_jira_ticket_description, get_pull_request_body,
+    get_control_plan_metrics_from_pr_comment, get_jira_ticket_title, 
+    get_jira_ticket_release_notes, get_jira_ticket_attachments,
+    get_jira_ticket_xlsx_attachment,
+    get_pav_metrics_for_apr, get_ppa_metrics_for_apr, 
+    get_sup_metrics_for_apr, get_dup_metrics_for_apr,
+    get_PRs_from_apr, get_pull_request_title, get_feature_rankings
+)
+
+load_dotenv()
+
+
+class LegacyManualOrchestration:
+    def __init__(self, agents_client, model_deployment_name):
+        """Initialize with new modular components."""
+        self.agents_client = agents_client
+        self.model_deployment_name = model_deployment_name
+        
+        # Use the new orchestrator
+        self.orchestrator = APROrchestrator(agents_client, model_deployment_name)
+        
+        # Use the new chat interface 
+        self.chat_interface = ChatInterface(agents_client, model_deployment_name)
+        
+        # Legacy compatibility properties
+        self.agents = {}
+        self.threads = {}
+        
+    def create_agents(self):
+        """Create agents using the new orchestrator."""
+        return self.orchestrator.create_agents()
+    
+    def analyze_apr(self, apr_number: str) -> str:
+        """Analyze APR using the new orchestrator."""
+        return self.orchestrator.analyze_apr(apr_number)
+    
+    def chat_mode(self):
+        """Start chat mode using the new chat interface."""
+        print("\n� Using new modular chat interface...")
+        return self.chat_interface.start_chat_session()
     
     def cleanup(self):
         """Clean up agents using the new orchestrator."""
         return self.orchestrator.cleanup()
 
-
 def main():
-    """Main entry point for the APR Analysis System."""
-    print("🚀 APR Analysis System")
-    print("🏗️  Powered by modular architecture")
-    print("=" * 50)
     
     # Initialize Azure AI Project client
     project_endpoint = os.environ.get("AZURE_EXISTING_AIPROJECT_ENDPOINT")
@@ -174,27 +161,26 @@ def main():
             print("❌ Error: Please define the environment variable MODEL_DEPLOYMENT_NAME.")
             return 1
         
-        # Create the system
-        system = APRAnalysisSystem(agents_client, model_deployment_name)
+        # Use the legacy wrapper (which delegates to new architecture)
+        orchestrator = LegacyManualOrchestration(agents_client, model_deployment_name)
         
         try:
             # Deploy agents immediately
             print("🚀 Deploying agents...")
-            system.create_agents()
+            orchestrator.create_agents()
             
             # Ask if user wants to chat
             choice = input("\n💬 Start interactive chat mode? (y/n): ").strip().lower()
             if choice in ['y', 'yes', '']:
-                system.chat_mode()
+                orchestrator.chat_mode()
             else:
                 print("👍 Agents deployed and ready. You can run manual_orchestration.py again to start chatting.")
-                
         except KeyboardInterrupt:
             print("\n👋 Interrupted by user")
         except Exception as e:
             print(f"❌ Error: {e}")
         finally:
-            system.cleanup()
+            orchestrator.cleanup()
     
     return 0
 

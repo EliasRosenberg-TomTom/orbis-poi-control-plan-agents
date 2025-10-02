@@ -1,18 +1,35 @@
-# Orbis POI Control Plan Agents
+# Professional Multi-Agent APR Analysis System
 
-A multi-agent system for automated analysis of APR (Automated Performance Report) metrics across POI (Point of Interest) validation themes including PAV (POI Availability), PPA (POI Positional Accuracy), SUP (Superfluousness), and DUP (Duplicate) metrics.
+A sophisticated multi-agent system for comprehensive APR (Application Performance Review) analysis using Azure AI Agents.
 
-## Overview
+## 🏗️ Architecture
 
-This system uses Azure AI Agents to analyze map data quality metrics and correlate them with JIRA tickets and pull requests to generate comprehensive release notes. The system consists of:
+This system follows professional multi-agent design patterns with clear separation of concerns:
 
-- **4 Specialized Metric Agents**: PAV, PPA, SUP, DUP - each analyzes specific POI validation metrics
-- **1 Coordinator Agent**: Synthesizes findings and links patterns to JIRA tickets
-- **Multi-API Integration**: Connects to Databricks, JIRA, and GitHub APIs
+```
+├── agents/                 # Agent implementations
+│   ├── base_agent.py      # Abstract base class
+│   ├── pav_agent.py       # PAV metrics agent
+│   ├── ppa_agent.py       # PPA metrics agent  
+│   ├── sup_agent.py       # SUP metrics agent
+│   ├── dup_agent.py       # DUP metrics agent
+│   └── coordinator_agent.py # Coordination agent
+├── orchestrator/          # Orchestration logic
+│   └── orchestrator.py    # Main orchestrator
+├── utils/                 # Shared utilities
+│   ├── chat_interface.py  # Interactive interface
+│   └── config.py          # Configuration management
+└── main.py               # Application entry point
+```
 
-## Structure
+## 🚀 Features
 
-![system img](./assets/system.png)
+- **Multi-Agent Architecture**: Specialized agents for different metric types
+- **Professional Design**: Clean abstractions and separation of concerns
+- **Flexible Deployment**: CLI and interactive chat modes
+- **Comprehensive Analysis**: PAV, PPA, SUP, DUP metrics with JIRA correlation
+- **Error Handling**: Robust retry logic and timeout management
+- **Configuration Management**: Environment-based configuration
 
 ## Prerequisites
 
