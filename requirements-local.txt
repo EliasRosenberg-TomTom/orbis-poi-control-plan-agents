@@ -1,0 +1,23 @@
+# requirements-local.txt - Full dependencies for local development and testing
+# Core Azure AI dependencies
+azure-ai-projects~=1.0.0b11
+azure-identity~=1.20.0
+python-dotenv~=1.1.1
+
+# Telemetry
+opentelemetry-api~=1.37.0
+opentelemetry-sdk~=1.37.0
+
+# Data processing - Full versions for local testing
+pandas~=2.3.2
+numpy>=1.21.0,<2.0.0  # Avoid NumPy 2.x compatibility issues
+pyarrow>=10.0.0
+
+# Development and testing tools
+black~=24.10.0
+pylint~=3.3.1
+pytest>=7.0.0
+pytest-cov>=4.0.0
+
+# Additional utilities that might be needed locally
+requests>=2.31.0

@@ -1,0 +1,24 @@
+# requirements-databricks.txt - Databricks-compatible dependencies
+# Core Azure AI dependencies
+azure-ai-projects~=1.0.0b11
+azure-identity~=1.20.0
+python-dotenv~=1.1.1
+
+# Telemetry (optional, may not be needed in Databricks)
+opentelemetry-api~=1.37.0
+opentelemetry-sdk~=1.37.0
+
+# Data processing - Use Databricks runtime versions
+# Don't specify pandas/numpy as Databricks provides optimized versions
+# pandas is pre-installed in Databricks runtime
+# numpy is pre-installed in Databricks runtime
+
+# Development tools (not needed for runtime)
+# black~=24.10.0
+# pylint~=3.3.1
+# ansible-core~=2.17.0
+
+# Only add if you specifically need requests beyond what's in Databricks
+# requests>=2.31.0
+
+# Only include essential runtime dependencies here
