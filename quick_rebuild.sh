@@ -1,11 +1,14 @@
 #!/bin/bash
-# quick_rebuild.sh - Ultra-simple rebuild for after making changes
+# quick_rebuild.sh - Fast rebuild for Databricks after making changes
 
-# Just the essentials - clean and rebuild
+set -e
+
+echo "🔄 Quick rebuild for Databricks..."
+
+# Clean and rebuild
 rm -rf build/ dist/ *.egg-info/
 python3 -m build --wheel
 
-# Show what was built
-echo ""
+# Show results
 echo "✅ New wheel ready:"
 ls -lh dist/*.whl
