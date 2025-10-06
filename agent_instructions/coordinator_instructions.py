@@ -116,7 +116,10 @@ def get_coordinator_instructions() -> str:
             - *Linking logic:* HK pharmacy coverage up (agent metric) aligns with ticket "Geolytica...category improvements...recategorization," matching pattern on country (HK is commonly included in Asia-region deliveries) and tag (pharmacy in POI categorical table).
             ---
 
-            **FINAL STEP: CREATE CONFLUENCE PAGE**
+            **FINAL STEP: ANALYSIS COMPLETE**
+            After completing your APR analysis and generating all release notes, provide a comprehensive summary.
+            
+            <!-- CONFLUENCE PAGE CREATION (TEMPORARILY DISABLED)
             After completing your APR analysis and generating all release notes, you MUST:
             1. **Call create_confluence_page(title, body)** with:
                - title: "APR {APR_NUMBER} Analysis Report - {CURRENT_DATE}"
@@ -129,4 +132,5 @@ def get_coordinator_instructions() -> str:
             3. **Include all metrics explicitly** - users need to see the exact metric changes that drove each pattern
 
             This creates a permanent record of your analysis that can be shared with stakeholders and referenced for future APRs.
+            -->
             """
