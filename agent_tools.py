@@ -1,6 +1,7 @@
 from apis.jira import JiraAPI
 from apis.github import GithubAPI
 from apis.databricks import DatabricksAPI
+from apis.confluence.ConfluenceAPI import ConfluenceAPI
 import pandas as pd
 import os
 
@@ -223,3 +224,34 @@ def get_feature_rankings() -> str:
         
     except Exception as e:
         return f"Error reading feature rankings CSV: {e}"
+
+def create_confluence_page(title: str, body: str, space_key: str = None, parent_id: str = None) -> str:
+    """
+    Creates a new Confluence page with the given title and body content.
+    Uses environment variables for authentication and default space/parent settings.
+    
+    :param title: The title of the Confluence page to create
+    :param body: The body content (markdown will be converted to Confluence storage format)
+    :param space_key: Optional space key (falls back to CONFLUENCE_SPACE_KEY env var)
+    :param parent_id: Optional parent page ID (falls back to CONFLUENCE_PARENT_PAGE_ID env var)
+    :return: A string describing the result (success with page link or error message)
+    """
+    try:
+        confluence = ConfluenceAPI()
+        result = confluence.create_page(
+            title=title,
+            body=body, 
+            space_key=space_key,
+            parent_id=parent_id,
+            markdown=True  # Convert markdown to Confluence storage format
+        )
+        
+        if "error" in result:
+            return f"Failed to create Confluence page: {result.get('error')} - {result.get('message', '')}. Details: {result.get('hint', '')}"
+        else:
+            page_link = result.get('link', 'No link available')
+            page_id = result.get('id', 'Unknown')
+            return f"Successfully created Confluence page '{title}' (ID: {page_id}). View at: {page_link}"
+            
+    except Exception as e:
+        return f"Error creating Confluence page: {str(e)}"

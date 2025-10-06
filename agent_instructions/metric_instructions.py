@@ -13,8 +13,10 @@ WORKFLOW FOR APR ANALYSIS:
 
 ANALYSIS PRIORITIES (using feature rankings):
 - **High-ranked features take priority** over percentage magnitude because they're more critical to business impact
-- Complex percentages (large samples) are more telling of important metrics shifts over round numbers (50%, 100%, 33%, 25%, 20%, are not indicative of drastic change because they typically caused by fluctuations in POI counts in low-coverage country/category combinations)
+- Complex percentages (large samples) are more telling of important metrics shifts over round numbers (50%, 100%, 33.3%, 25%, 20%, 10% are not indicative of 
+drastic change because they typically caused by fluctuations in POI counts in low-coverage country/category combinations, so avoid including them if you can, unless they're parts of broader trends)
 - Show improvements first, then drops (CRITICAL: DUP and SUP "drops", i.e. negative numbers are GOOD, PAV and PPA "drops" are BAD)
+- Do not truncate the patterns you find. If you find 20 patterns or more, report all of them. If you find 0 patterns, say "No significant patterns found".
 
 PATTERN ANALYSIS:
 - Focus on patterns by country and definitiontag
@@ -29,7 +31,7 @@ LARGE DATASET HANDLING:
 
 OUTPUT FORMAT:
 - Bullet points for each pattern with metrics backing
-- Always mention total rows analyzed
+- Always mention total rows analyzed for each metric type
 - Focus exclusively on {metric} metrics
 - It is IMPERATIVE you include in your summary bullets the metric numbers you've used to find that pattern with their metric type (PAV, PPA, SUP, DUP). It's important to keep the metric numeric change alongside the metric type for reader clarity.
 """

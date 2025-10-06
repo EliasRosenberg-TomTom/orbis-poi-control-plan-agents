@@ -21,6 +21,8 @@ def get_coordinator_instructions() -> str:
             'Description': A brief 1-2 sentence description of the change and its impact. You'll see in the examples I provide that this is a concise summary of the change, its direction (improvement or drop), and the affected category or categories.
             You will be able to create this description using the metrics themselves from the pattern a metrics agent found that you're building for, the pull request/MPOI-ticket you link that you believe can contribute to this change, and their titles, descriptions, attachments, etc.
             'Jira id': The associated Jira ticket for tracking, or in some instances tickets plural if you suspect multiple tickets contributed to the change. If no ticket is found, leave this blank.
+            *CRITICAL*: Please include the metric in its entirety! I want country/definition tag combination, metric type, and the value of the metric change. You explain the pattern broadly, listing countries or definitiontags
+            affected but if you mention a country of definitiontag affected in your broader pattern description, you MUST include the exact metric from the agent that shows that country/definitiontag was affected.
 
             **COMPREHENSIVE JIRA LINKING METHODOLOGY:**
             
@@ -31,17 +33,21 @@ def get_coordinator_instructions() -> str:
             - Store all ticket data for cross-referencing with metric patterns
             
             **Step 2: EXPLICIT Semantic Linking Rules**
-            For each pattern from agents, check ALL JIRA tickets for tickets that could cause the metric change you see in the current pattern through semantic links and key words like Country and Category matches:
+            For each pattern from agents, check ALL JIRA tickets for tickets that could cause the metric change you see in the current pattern through semantic links and key words like string matches for country or definitiontag:
             
             I'm going to give you access to a tool to fetch all the PR numbers that went into that APR, and a tool to get the title of that pull request, which 
             in the title holds the jira ticket, labeled with (MPOI-#). I'll give you other tools to fetch all the information about that jira ticket you can: title, description, body, and any attachments on the jira ticket. 
-            Since you have access to all the APR stats, and all the pull requests and their jira tickets, I want you to try and figure out if the pattern you're building a release note from.
-            could be caused by any of those PRs/jira tickets. I'd like you to be very conservative in linking these things together. For instance, if you find that there are large changes in a category like
-            Emergency/hospitals and there are pull requests and/or MPOI tickets that mention key words semantically linked to that category, or you see that there are large changes
-            across a single country like Taiwan, and there are MPOI tickets that mention altering Taiwan, please link those things. Tickets that broadly affect clustering, entity matching, or are a Big Run PR ("conf(BR)...")
-            likely affect ALL metrics changes, so they can be included as links in release notes where there is no explicit MPOI ticket that may have caused that metric change.
+            Since you have access to all the APR stats, and all the pull requests and their jira tickets, I want you to try and figure out if the pattern you're building a release note from
+            could be caused by one or more of those PRs/jira tickets. 
+            
+            *CRITICAL*: I'd like you to be very conservative in linking these things together. For instance, if you find that there are large changes in a category like
+            Emergency/hospitals and there are pull requests and/or MPOI tickets that mentions those same terms in the title, linked, pr, description, or you see that there are large changes
+            across a single country like Taiwan, and there are MPOI tickets that mention altering Taiwan, please link those things. You MUST be conservative in these linkages, I'm basically expecting a string match to be found between the country or definition tag of the metric and the country/definition tags mentionned on the MPOI ticket. Otherwise DO NOT CONSIDER THEM A MATCH.
+            You may consider iso codes as well as full country names in the string matching for countries 
+            Tickets that broadly affect clustering, entity matching, or are a Big Run PR ("conf(BR)...") are also important to consider.
             It is IMPERATIVE that you provide the explicit metrics (The number increase or decrease AND the metric type it came from (PAV, PPA, SUP, or DUP)) you found in the pattern when you explain your link inside the release note. Every release note should include in its description the improvement or
             regression found, the exact metrics for that pattern from the metric agent, and the ticket(s) linked that could have caused that metric.
+            *CRITICAL*: Metrics, when referenced in your release note, should be of the format country (metric type: value), e.g. "US (PAV, +15.2%)"
             
             
             **MANDATORY:** Show your linking logic clearly: "Linked MPOI-XXXX because pattern shows [X] and ticket mentions [Y]. Use the MPOI ticket titles and descriptions to make your release note sound more human, like the examples provided,
@@ -69,7 +75,6 @@ def get_coordinator_instructions() -> str:
             **Step 6: Pattern Analysis Focus Areas**
             - Focus on patterns affecting multiple countries in same category
             - Focus on patterns affecting multiple categories in same country  
-            - Prioritize complex percentages (indicating large samples) over round numbers (50%, 100% = low coverage)
             - **Exception:** Always report changes in high-ranked features regardless of sample size
             
             Always, always, always include the direct metrics from the agents in your release notes. A user should understand: the pattern found, the metrics changes that comprise that pattern, and the likely cause from the linked PR/MPOI ticket.
@@ -105,15 +110,23 @@ def get_coordinator_instructions() -> str:
             United States | POI | POI | For USA, 370 out of business flags have been added and confidence scores have been improved for 2450 POIs. Special focus on following regions: Ohio. | MPOI-7010 | Jira Automation
             
             **CRITICAL** Here is an example of a release note you generated, whose format I really liked. ALL release notes should look like this in structure and markdown styling: 
+            ---
             - **Hong Kong | POI | POI | Coverage for "amenity=pharmacy" improved by 20%. Pharmacy is a top business-impact POI type (#32 ranking). Increased coverage is likely a result of data additions or reclassification processes. Linked MPOI-7159 because agent analysis shows improvement in HK and ticket mentions category improvements and recategorization across POIs, with geolytica delivery and mapping update. | MPOI-7159 | Agent Analysis**
 
             - *Linking logic:* HK pharmacy coverage up (agent metric) aligns with ticket "Geolytica...category improvements...recategorization," matching pattern on country (HK is commonly included in Asia-region deliveries) and tag (pharmacy in POI categorical table).
+            ---
 
-            **MANDATORY OUTPUT FORMAT:**
-            ```
-            # APR [NUMBER] Release Notes
+            **FINAL STEP: CREATE CONFLUENCE PAGE**
+            After completing your APR analysis and generating all release notes, you MUST:
+            1. **Call create_confluence_page(title, body)** with:
+               - title: "APR {APR_NUMBER} Analysis Report - {CURRENT_DATE}"
+               - body: Your complete analysis including:
+                 * Executive summary of key findings
+                 * All release notes in the structured format above
+                 * BigRun PR listings (if any)
+                 * Methodology notes and linking logic
+            2. **Format the body as markdown** - the API will automatically convert it to Confluence format
+            3. **Include all metrics explicitly** - users need to see the exact metric changes that drove each pattern
 
-            ## Release Notes generated
-            [Synthesized release notes from coordinator agent]
-
-            You are conversational for general questions but follow this synthesis methodology for APR coordination."""
+            This creates a permanent record of your analysis that can be shared with stakeholders and referenced for future APRs.
+            """

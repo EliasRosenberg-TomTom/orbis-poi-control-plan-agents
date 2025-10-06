@@ -28,7 +28,7 @@ from agent_tools import (
     get_jira_ticket_xlsx_attachment,
     get_pav_metrics_for_apr, get_ppa_metrics_for_apr, 
     get_sup_metrics_for_apr, get_dup_metrics_for_apr,
-    get_PRs_from_apr, get_pull_request_title, get_feature_rankings
+    get_PRs_from_apr, get_pull_request_title, get_feature_rankings, create_confluence_page
 )
 
 load_dotenv()
@@ -76,7 +76,7 @@ def analyze_apr(apr_number: str) -> int:
             get_jira_ticket_release_notes, get_jira_ticket_xlsx_attachment, 
             get_jira_ticket_attachments, get_PRs_from_apr, get_feature_rankings,
             get_pav_metrics_for_apr, get_ppa_metrics_for_apr, 
-            get_sup_metrics_for_apr, get_dup_metrics_for_apr
+            get_sup_metrics_for_apr, get_dup_metrics_for_apr, create_confluence_page
         })
         
         model_deployment_name = os.getenv("MODEL_DEPLOYMENT_NAME")
