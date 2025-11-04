@@ -137,7 +137,7 @@ def get_PRs_from_apr(aprNumber: int) -> str:
     catalog = "pois_aqua_dev"
     schema = f"control_plan_automation"
     table =  "release_tag_to_apr_number"
-    statement = f"select consecutiveAPRPullRequests FROM {catalog}.{schema}.{table} WHERE aprNumber = {aprNumber}"
+    statement = f"select sinceLastPublishedAPRPullRequests FROM {catalog}.{schema}.{table} WHERE aprNumber = {aprNumber}"
 
     return db.execute_sql(catalog, schema, statement)
 

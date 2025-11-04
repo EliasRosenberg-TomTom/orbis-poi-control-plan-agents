@@ -24,6 +24,55 @@ def get_coordinator_instructions() -> str:
             *CRITICAL*: Please include the metric in its entirety! I want country/definition tag combination, metric type, and the value of the metric change. You explain the pattern broadly, listing countries or definitiontags
             affected but if you mention a country of definitiontag affected in your broader pattern description, you MUST include the exact metric from the agent that shows that country/definitiontag was affected.
 
+            **METRIC INTERPRETATION RULE TABLE - APPLY TO EVERY METRIC:**
+            ┌─────────┬──────────┬────────────┬─────────────────────────────────┐
+            │ Metric  │ Positive │ Negative   │ What to Write                   │
+            ├─────────┼──────────┼────────────┼─────────────────────────────────┤
+            │ PAV     │ GOOD ✓   │ BAD ✗      │ +PAV: "improvement" / -PAV: "regression" │
+            │ PPA     │ GOOD ✓   │ BAD ✗      │ +PPA: "improvement" / -PPA: "regression" │
+            │ SUP     │ BAD ✗    │ GOOD ✓     │ +SUP: "regression"  / -SUP: "improvement" │
+            │ DUP     │ BAD ✗    │ GOOD ✓     │ +DUP: "regression"  / -DUP: "improvement" │
+            └─────────┴──────────┴────────────┴─────────────────────────────────┘
+
+            **CRITICAL RULE: NEVER MIX METRIC TYPES IN ONE PATTERN**
+            - PAV patterns must ONLY contain PAV metrics
+            - PPA patterns must ONLY contain PPA metrics
+            - SUP patterns must ONLY contain SUP metrics
+            - DUP patterns must ONLY contain DUP metrics
+            
+            **WHY: PAV/PPA have OPPOSITE logic from SUP/DUP**
+            - Mixing them causes confusion about improvements vs regressions
+            - Each metric type must be analyzed and reported separately
+            
+            **MECHANICAL RULE - APPLY WITHOUT THINKING:**
+            For each metric type separately:
+
+            FOR PAV PATTERNS (containing only PAV metrics):
+              IF all signs are + → Write "PAV improvements"
+              IF all signs are - → Write "PAV regressions"
+              IF mixed signs → Create TWO separate patterns (one for improvements, one for regressions)
+
+            FOR PPA PATTERNS (containing only PPA metrics):
+              IF all signs are + → Write "PPA improvements"
+              IF all signs are - → Write "PPA regressions"
+              IF mixed signs → Create TWO separate patterns (one for improvements, one for regressions)
+
+            FOR SUP PATTERNS (containing only SUP metrics):
+              IF all signs are + → Write "SUP regressions"
+              IF all signs are - → Write "SUP improvements"
+              IF mixed signs → Create TWO separate patterns (one for improvements, one for regressions)
+
+            FOR DUP PATTERNS (containing only DUP metrics):
+              IF all signs are + → Write "DUP regressions"
+              IF all signs are - → Write "DUP improvements"
+              IF mixed signs → Create TWO separate patterns (one for improvements, one for regressions)
+
+            **EXAMPLES:**
+            ✅ CORRECT: "Pharmacy PAV improvements: ES (PAV, +15.2%), FR (PAV, +12.3%)"
+            ✅ CORRECT: "Travel agency SUP regressions: AR (SUP, +51.85%), AT (SUP, +35.24%)"
+            ✅ CORRECT: "Convenience store SUP improvements: HU (SUP, -25.45%), AE (SUP, -41.67%)"
+            ❌ WRONG: "Pharmacy improvements: ES (PAV, +15.2%), FR (DUP, +33.51%)" - NEVER MIX METRIC TYPES!
+
             **COMPREHENSIVE JIRA LINKING METHODOLOGY:**
             
             **Step 1: Retrieve All APR Pull Requests and JIRA Tickets**
@@ -116,8 +165,75 @@ def get_coordinator_instructions() -> str:
             - *Linking logic:* HK pharmacy coverage up (agent metric) aligns with ticket "Geolytica...category improvements...recategorization," matching pattern on country (HK is commonly included in Asia-region deliveries) and tag (pharmacy in POI categorical table).
             ---
 
-            **FINAL STEP: ANALYSIS COMPLETE**
-            After completing your APR analysis and generating all release notes, provide a comprehensive summary.
+            **FINAL STEP: STRUCTURED OUTPUT BY METRIC TYPE**
+            After completing your APR analysis, organize release notes into SEPARATE SECTIONS by metric type:
+
+            **OUTPUT STRUCTURE:**
+            
+            # APR Analysis Report
+            
+            ## Executive Summary
+            [Brief overview of key findings across all metric types]
+            
+            ## PAV (POI Availability) Changes
+            ### PAV Improvements
+            [List all PAV improvement patterns here]
+            
+            ### PAV Regressions
+            [List all PAV regression patterns here]
+            
+            ## PPA (POI Positional Accuracy) Changes
+            ### PPA Improvements
+            [List all PPA improvement patterns here]
+            
+            ### PPA Regressions
+            [List all PPA regression patterns here]
+            
+            ## SUP (Superfluous POIs) Changes
+            ### SUP Improvements
+            [List all SUP improvement patterns here - these have NEGATIVE values]
+            
+            ### SUP Regressions
+            [List all SUP regression patterns here - these have POSITIVE values]
+            
+            ## DUP (Duplicate POIs) Changes
+            ### DUP Improvements
+            [List all DUP improvement patterns here - these have NEGATIVE values]
+            
+            ### DUP Regressions
+            [List all DUP regression patterns here - these have POSITIVE values]
+            
+            **CRITICAL RULES FOR EACH SECTION:**
+            1. **ONLY include patterns reported by that specific agent**
+               - PAV section = ONLY patterns from PAV agent with PAV metrics
+               - PPA section = ONLY patterns from PPA agent with PPA metrics
+               - SUP section = ONLY patterns from SUP agent with SUP metrics
+               - DUP section = ONLY patterns from DUP agent with DUP metrics
+            
+            2. **IF an agent reports "No significant patterns found":**
+               - Write exactly: "No significant DUP patterns found in this APR."
+               - Do NOT invent patterns or infer from other metric types
+               - Do NOT write release notes for that section
+            
+            3. **NEVER substitute metrics:**
+               - ❌ WRONG: Writing about PAV/SUP in the DUP section
+               - ❌ WRONG: "suggesting reduced duplication" when you only have PAV data
+               - ❌ WRONG: Inferring DUP changes from SUP or clustering tickets
+               - ✅ CORRECT: Only write release notes using the exact metrics provided by each agent
+            
+            4. **VALIDATION BEFORE WRITING:**
+               - For DUP section: Does this pattern contain DUP metrics? If NO → Don't include it
+               - For SUP section: Does this pattern contain SUP metrics? If NO → Don't include it
+               - For PAV section: Does this pattern contain PAV metrics? If NO → Don't include it
+               - For PPA section: Does this pattern contain PPA metrics? If NO → Don't include it
+            
+            ## BigRun PRs
+            [List any BigRun PRs found]
+            
+            ## Methodology
+            [Brief summary of analysis approach]
+            
+            **CRITICAL: Each section contains ONLY that metric type. Never mix PAV/PPA/SUP/DUP in the same pattern.**
             
             <!-- CONFLUENCE PAGE CREATION (TEMPORARILY DISABLED)
             After completing your APR analysis and generating all release notes, you MUST:
