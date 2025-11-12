@@ -157,7 +157,7 @@ class APROrchestrator:
                     return error_msg
     
     def create_final_report(self, apr_number: str, pav_result: str, ppa_result: str, 
-                           sup_result: str, dup_result: str) -> str:
+                           sup_result: str, dup_result: str, retries: int = 2) -> str:
         """
         Use coordinator agent to create final comprehensive report.
         
@@ -167,17 +167,23 @@ class APROrchestrator:
             ppa_result: PPA analysis result  
             sup_result: SUP analysis result
             dup_result: DUP analysis result
+            retries: Number of retry attempts
             
         Returns:
             str: Final comprehensive report
         """
-        print("🔄 Creating comprehensive final report...")
-        
         coordinator = self.agents['coordinator']
         thread = self.threads['coordinator']
         
-        # Provide data to coordinator without redundant instructions
-        prompt = f"""Please analyze and synthesize the results for APR {apr_number}.
+        for attempt in range(retries + 1):
+            try:
+                if attempt > 0:
+                    print(f"🔄 Retry {attempt}: Creating comprehensive final report...")
+                else:
+                    print("🔄 Creating comprehensive final report...")
+                
+                # Provide data to coordinator without redundant instructions
+                prompt = f"""Please analyze and synthesize the results for APR {apr_number}.
 
 Here are the metric analysis findings from the specialized agents:
 
@@ -194,31 +200,47 @@ DUP AGENT ANALYSIS:
 {dup_result}
 
 Please create your comprehensive analysis following your instructions."""
-        
-        # Send to coordinator
-        self.agents_client.messages.create(
-            thread_id=thread.id,
-            role="user",
-            content=prompt
-        )
-        
-        # Process final report with extended timeout for JIRA analysis
-        print("⏳ Coordinator analyzing patterns and linking JIRA tickets...")
-        timeout = self.agent_instances['coordinator'].metadata.get("timeout", 600)
-        run = self.agents_client.runs.create_and_process(
-            thread_id=thread.id,
-            agent_id=coordinator.id,
-            timeout=timeout
-        )
-        
-        # Get final report
-        messages = list(self.agents_client.messages.list(thread_id=thread.id))
-        if messages and messages[0].role == MessageRole.AGENT:
-            final_report = messages[0].content[0].text.value
-            print("✅ Comprehensive report completed")
-            return final_report
-        else:
-            return "❌ Failed to generate comprehensive report"
+                
+                # Send to coordinator
+                self.agents_client.messages.create(
+                    thread_id=thread.id,
+                    role="user",
+                    content=prompt
+                )
+                
+                # Process final report with extended timeout for JIRA analysis
+                print("⏳ Coordinator analyzing patterns and linking JIRA tickets...")
+                timeout = self.agent_instances['coordinator'].metadata.get("timeout", 600)
+                run = self.agents_client.runs.create_and_process(
+                    thread_id=thread.id,
+                    agent_id=coordinator.id,
+                    timeout=timeout
+                )
+                
+                # Get final report
+                messages = list(self.agents_client.messages.list(thread_id=thread.id))
+                if messages and messages[0].role == MessageRole.AGENT:
+                    final_report = messages[0].content[0].text.value
+                    print("✅ Comprehensive report completed")
+                    return final_report
+                else:
+                    if attempt < retries:
+                        print(f"⚠️ No coordinator response, retrying...")
+                        time.sleep(5)
+                        continue
+                    else:
+                        print(f"❌ No coordinator response after {retries + 1} attempts")
+                        return "❌ Failed to generate comprehensive report"
+                        
+            except Exception as e:
+                if attempt < retries:
+                    print(f"⚠️ Coordinator error: {e}, retrying...")
+                    time.sleep(5)
+                    continue
+                else:
+                    error_msg = f"❌ Coordinator execution failed after {retries + 1} attempts: {e}"
+                    print(error_msg)
+                    return error_msg
     
     def analyze_apr(self, apr_number: str) -> str:
         """

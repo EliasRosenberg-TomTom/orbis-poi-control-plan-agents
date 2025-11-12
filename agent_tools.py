@@ -161,7 +161,7 @@ def get_pav_metrics_for_apr(aprNumber: int) -> str:
     catalog = "pois_aqua_dev"
     schema = f"run_apr_{aprNumber}"
     table = "issue_list"
-    statement = f"select country, definitiontag, diff_absolute FROM {catalog}.{schema}.{table} WHERE validation_theme = 'pav' and abs(diff_absolute) > 3"
+    statement = f"select country, definitiontag, diff_absolute, diff_relative FROM {catalog}.{schema}.{table} WHERE validation_theme = 'pav' and abs(diff_relative) > 3 ORDER BY abs(diff_relative) DESC LIMIT 1000"
     return db.execute_sql(catalog, schema, statement)
 
 def get_ppa_metrics_for_apr(aprNumber: int) -> str:
@@ -169,7 +169,7 @@ def get_ppa_metrics_for_apr(aprNumber: int) -> str:
     catalog = "pois_aqua_dev"
     schema = f"run_apr_{aprNumber}"
     table = "issue_list"
-    statement = f"select country, definitiontag, diff_absolute FROM {catalog}.{schema}.{table} WHERE validation_theme = 'ppa' and abs(diff_absolute) > 3"
+    statement = f"select country, definitiontag, diff_absolute, diff_relative FROM {catalog}.{schema}.{table} WHERE validation_theme = 'ppa' and abs(diff_relative) > 3 ORDER BY abs(diff_relative) DESC LIMIT 1000"
     return db.execute_sql(catalog, schema, statement)
 
 def get_sup_metrics_for_apr(aprNumber: int) -> str:
@@ -177,7 +177,7 @@ def get_sup_metrics_for_apr(aprNumber: int) -> str:
     catalog = "pois_aqua_dev"
     schema = f"run_apr_{aprNumber}"
     table = "issue_list"
-    statement = f"select country, definitiontag, diff_absolute FROM {catalog}.{schema}.{table} WHERE validation_theme = 'sup' and abs(diff_absolute) > 3"
+    statement = f"select country, definitiontag, diff_absolute, diff_relative FROM {catalog}.{schema}.{table} WHERE validation_theme = 'sup' and abs(diff_relative) > 3 ORDER BY abs(diff_relative) DESC LIMIT 1000"
     return db.execute_sql(catalog, schema, statement)
 
 def get_dup_metrics_for_apr(aprNumber: int) -> str:
@@ -185,7 +185,7 @@ def get_dup_metrics_for_apr(aprNumber: int) -> str:
     catalog = "pois_aqua_dev"
     schema = f"run_apr_{aprNumber}"
     table = "issue_list"
-    statement = f"select country, definitiontag, diff_absolute FROM {catalog}.{schema}.{table} WHERE validation_theme = 'dup' and abs(diff_absolute) > 3"
+    statement = f"select country, definitiontag, diff_absolute, diff_relative FROM {catalog}.{schema}.{table} WHERE validation_theme = 'dup' and abs(diff_relative) > 3 ORDER BY abs(diff_relative) DESC LIMIT 1000"
     return db.execute_sql(catalog, schema, statement)
 
 def get_feature_rankings() -> str:
