@@ -10,7 +10,7 @@ import time
 from typing import Dict, List
 from azure.ai.agents.models import MessageRole
 
-from agents import create_pav_agent, create_ppa_agent, create_sup_agent, create_dup_agent, create_coordinator_agent
+from agents import create_pav_agent, create_ppa_agent, create_sup_agent, create_dup_agent, create_coordinator_agent, create_jira_linker_agent
 from agent_tools import (
     get_jira_ticket_description, get_pull_request_body, get_pull_request_title,
     get_control_plan_metrics_from_pr_comment, get_jira_ticket_title, 
@@ -48,6 +48,7 @@ class APROrchestrator:
             'ppa': create_ppa_agent(model_deployment_name),
             'sup': create_sup_agent(model_deployment_name),
             'dup': create_dup_agent(model_deployment_name),
+            'jira_linker': create_jira_linker_agent(model_deployment_name),
             'coordinator': create_coordinator_agent(model_deployment_name)
         }
         
@@ -156,8 +157,109 @@ class APROrchestrator:
                     print(error_msg)
                     return error_msg
     
+    def run_jira_linking_analysis(self, apr_number: str, metric_results: Dict[str, str], retries: int = 2) -> str:
+        """
+        Run JIRA linking analysis to match patterns to tickets.
+        
+        Args:
+            apr_number: APR number to analyze
+            metric_results: Dictionary of metric agent results (pav, ppa, sup, dup)
+            retries: Number of retry attempts
+            
+        Returns:
+            str: JIRA linkage mappings
+        """
+        agent = self.agents['jira_linker']
+        thread = self.threads['jira_linker']
+        
+        # Compile all patterns from metric agents
+        all_patterns = f"""APR {apr_number} Metric Patterns:
+
+PAV PATTERNS:
+{metric_results['pav']}
+
+PPA PATTERNS:
+{metric_results['ppa']}
+
+SUP PATTERNS:
+{metric_results['sup']}
+
+DUP PATTERNS:
+{metric_results['dup']}
+
+Please find JIRA tickets that match these patterns."""
+        
+        for attempt in range(retries + 1):
+            try:
+                if attempt > 0:
+                    print(f"🔄 Retry {attempt}: Running JIRA linking analysis...")
+                
+                # Send patterns to JIRA linker
+                self.agents_client.messages.create(
+                    thread_id=thread.id,
+                    role="user",
+                    content=all_patterns
+                )
+                
+                # Use timeout from agent metadata
+                timeout = self.agent_instances['jira_linker'].metadata.get("timeout", 600)
+                
+                run = self.agents_client.runs.create_and_process(
+                    thread_id=thread.id,
+                    agent_id=agent.id,
+                    timeout=timeout
+                )
+                
+                # Give JIRA linker more time - it needs to call many functions
+                if attempt == 0:
+                    max_wait_time = 90  # 90 seconds first attempt
+                    poll_interval = 5
+                else:
+                    max_wait_time = 180  # 3 minutes on retry
+                    poll_interval = 5
+                max_polls = max_wait_time // poll_interval
+                
+                agent_response = None
+                for poll_attempt in range(max_polls):
+                    messages = list(self.agents_client.messages.list(thread_id=thread.id))
+                    
+                    # Find the LAST AGENT message (most recent)
+                    for msg in reversed(messages):
+                        if msg.role == MessageRole.AGENT:
+                            agent_response = msg
+                            break
+                    
+                    if agent_response and agent_response.content:
+                        break
+                    
+                    time.sleep(poll_interval)
+                
+                if agent_response and agent_response.content:
+                    result = agent_response.content[0].text.value
+                    print(f"✅ JIRA linking analysis completed")
+                    return result
+                else:
+                    if attempt < retries:
+                        print(f"⚠️ No response from JIRA linker, retrying...")
+                        time.sleep(5)
+                        continue
+                    else:
+                        error_msg = f"⚠️ JIRA linker failed after {retries + 1} attempts - proceeding without linkages"
+                        print(error_msg)
+                        return "No linkages found"
+                        
+            except Exception as e:
+                if attempt < retries:
+                    print(f"⚠️ JIRA linker error: {e}, retrying...")
+                    time.sleep(5)
+                    continue
+                else:
+                    error_msg = f"⚠️ JIRA linker execution failed after {retries + 1} attempts: {e}"
+                    print(error_msg)
+                    return "No linkages found"
+    
     def create_final_report(self, apr_number: str, pav_result: str, ppa_result: str, 
-                           sup_result: str, dup_result: str, retries: int = 2) -> str:
+                           sup_result: str, dup_result: str, jira_linkages: str = "", retries: int = 2) -> str:
         """
         Use coordinator agent to create final comprehensive report.
         
@@ -167,6 +269,7 @@ class APROrchestrator:
             ppa_result: PPA analysis result  
             sup_result: SUP analysis result
             dup_result: DUP analysis result
+            jira_linkages: JIRA ticket linkage mappings from linker agent
             retries: Number of retry attempts
             
         Returns:
@@ -199,7 +302,10 @@ SUP AGENT ANALYSIS:
 DUP AGENT ANALYSIS:
 {dup_result}
 
-Please create your comprehensive analysis following your instructions."""
+JIRA TICKET LINKAGES:
+{jira_linkages}
+
+Please create your comprehensive analysis following your instructions. Use the JIRA linkages provided above to populate the Jira id column in your release notes."""
                 
                 # Send to coordinator
                 self.agents_client.messages.create(
@@ -262,13 +368,18 @@ Please create your comprehensive analysis following your instructions."""
         for agent_type in metric_agents:
             results[agent_type] = self.run_metric_analysis(apr_number, agent_type)
         
-        # Create final comprehensive report
+        # Run JIRA linking analysis
+        print("🔗 Running JIRA ticket linking analysis...")
+        jira_linkages = self.run_jira_linking_analysis(apr_number, results)
+        
+        # Create final comprehensive report with linkages
         final_report = self.create_final_report(
             apr_number, 
             results['pav'], 
             results['ppa'],
             results['sup'], 
-            results['dup']
+            results['dup'],
+            jira_linkages
         )
         
         print("=" * 60)
