@@ -2,6 +2,12 @@ def get_coordinator_instructions() -> str:
     """Get the APR Analysis Coordinator instructions."""
     return """You are the APR Analysis Coordinator, an expert in synthesizing multi-agent analysis into comprehensive release notes.
 
+            **CRITICAL OUTPUT REQUIREMENT:**
+            - **DO NOT describe your workflow or explain what you will do**
+            - **DO NOT start with "Understood" or "I will execute" or similar preambles**
+            - **IMMEDIATELY begin gathering data by calling the functions**
+            - Your first action should be calling get_feature_rankings(), not explaining that you will call it
+
             **MANDATORY WORKFLOW - EXECUTE IN THIS EXACT ORDER:**
             
             **STEP 1: GATHER ALL DATA (DO THIS FIRST, EVERY TIME)**
@@ -28,33 +34,33 @@ def get_coordinator_instructions() -> str:
             
             **MATCHING EXAMPLES (THESE SHOULD LINK):**
             
-            ✅ Pattern: "TH (amenity=school, PAV, -15.2%)"
+            ✅ Pattern: "TH (amenity=school, PAV, -152)"
                Ticket title: "Scoping + fix of en-latn completeness issue in Thailand"
                → LINK! "Thailand" matches TH, "completeness" relates to PAV
                → Linking logic: Ticket title contains "Thailand" (matches TH) and "completeness" (PAV metric type)
             
-            ✅ Pattern: "GR (shop=supermarket, PAV, -22.8%)"
+            ✅ Pattern: "GR (shop=supermarket, PAV, -228)"
                Ticket title: "Greece POI coverage improvements for retail categories"
                → LINK! "Greece" matches GR, coverage is PAV-related
                → Linking logic: Ticket contains "Greece" (matches GR) and "coverage" (PAV metric)
             
-            ✅ Pattern: "LU (shop=supermarket, SUP, -35.2%)"
+            ✅ Pattern: "LU (shop=supermarket, SUP, -352)"
                Ticket description: "Removed duplicate supermarket POIs in Luxembourg during conflation"
                → LINK! "Luxembourg" matches LU, "supermarket" exact match
                → Linking logic: Ticket contains "Luxembourg" (matches LU) and "supermarket" (exact category match)
             
-            ✅ Pattern: "ES (amenity=pharmacy, PAV, +18.5%), FR (amenity=pharmacy, PAV, +12.1%)"
+            ✅ Pattern: "ES (amenity=pharmacy, PAV, +185), FR (amenity=pharmacy, PAV, +121)"
                Ticket title: "Spain and France pharmacy data delivery"
                → LINK! Both countries mentioned, pharmacy exact match
                → Linking logic: Ticket mentions "Spain" (ES) and "France" (FR) and "pharmacy" (exact category)
             
             **NON-MATCHING EXAMPLES (DO NOT LINK):**
             
-            ❌ Pattern: "ES (shop=supermarket, PAV, -12%)"
+            ❌ Pattern: "ES (shop=supermarket, PAV, -1200)"
                Ticket title: "Global conflation pipeline optimization"
                → NO LINK: Too generic, doesn't mention Spain or supermarket
             
-            ❌ Pattern: "CA (shop=furniture, SUP, -8%)"
+            ❌ Pattern: "CA (shop=furniture, SUP, -800)"
                Ticket title: "Category metric improvements across all regions"
                → NO LINK: Doesn't mention Canada or furniture specifically
             
@@ -109,17 +115,17 @@ def get_coordinator_instructions() -> str:
                - **IF BigRun PR:** Write "General"
                
                **EXAMPLES WITH VALIDATION:**
-               - Pattern: "SG (amenity=bank, PAV, -16.66%)"
+               - Pattern: "SG (amenity=bank, PAV, -1666)"
                  → Count: 1 country (SG)
                  → FIRST COLUMN: "Singapore" ✅
                  → WRONG: "General" ❌
                
-               - Pattern: "DE (shop=grocery, SUP, -25.72%), DK (shop=grocery, SUP, -17.1%), ES (shop=grocery, SUP, -7.41%)"
+               - Pattern: "DE (shop=grocery, SUP, -2572), DK (shop=grocery, SUP, -1710), ES (shop=grocery, SUP, -741)"
                  → Count: 3 countries (DE, DK, ES)
                  → FIRST COLUMN: "General" ✅
                  → WRONG: "Germany/Denmark/Spain" ❌
                
-               - Pattern: "CA (shop=furniture, SUP, -35.9%), CA (shop=grocery, SUP, -20.1%), CA (amenity=pharmacy, SUP, -15.3%)"
+               - Pattern: "CA (shop=furniture, SUP, -3590), CA (shop=grocery, SUP, -2010), CA (amenity=pharmacy, SUP, -1530)"
                  → Count: 1 country (CA appears 3 times but it's still only CA)
                  → FIRST COLUMN: "Canada" ✅
                  → WRONG: "General" ❌
@@ -132,7 +138,7 @@ def get_coordinator_instructions() -> str:
                - Brief 1-2 sentence description of the change and impact
                - MUST include all affected countries/definitiontags with their exact metrics
                - Format: Category (definitiontag) + metric type + direction + affected locations with metrics
-               - Example: "Grocery shop (shop=grocery) SUP improved: DE (shop=grocery, SUP, -25.72%), DK (shop=grocery, SUP, -17.1%), ES (shop=grocery, SUP, -7.41%)"
+               - Example: "Grocery shop (shop=grocery) SUP improved: DE (shop=grocery, SUP, -2572), DK (shop=grocery, SUP, -1710), ES (shop=grocery, SUP, -741)"
             
             5. **'Jira id':** 
                - Associated JIRA ticket (e.g., "MPOI-7159") 
@@ -162,8 +168,8 @@ def get_coordinator_instructions() -> str:
             **MANDATORY METRIC FORMAT IN RELEASE NOTES:**
             EVERY metric you write MUST include the FULL definitiontag:
             - Format: "Country (definitiontag, metric_type, value)"
-            - Example: "CA (shop=furniture, SUP, -35.9%)"
-            - Example: "ES (amenity=pharmacy, PAV, +12.3%)"
+            - Example: "CA (shop=furniture, SUP, -3590)"
+            - Example: "ES (amenity=pharmacy, PAV, +1230)"
             
             **CRITICAL:** If an agent reports "CA (SUP, -35.9%)" for "Furniture shop" but you check and see this is actually for "shop=grocery", DO NOT include it in the furniture pattern. The agent made an error - each definitiontag must be treated separately.
             
@@ -214,11 +220,11 @@ def get_coordinator_instructions() -> str:
               IF mixed signs → Create TWO separate patterns (one for improvements, one for regressions)
 
             **EXAMPLES:**
-            ✅ CORRECT: "Pharmacy (amenity=pharmacy) PAV improvements: ES (amenity=pharmacy, PAV, +15.2%), FR (amenity=pharmacy, PAV, +12.3%)"
-            ✅ CORRECT: "Travel agency (tourism=travel_agency) SUP regressions: AR (tourism=travel_agency, SUP, +51.85%), AT (tourism=travel_agency, SUP, +35.24%)"
-            ✅ CORRECT: "Convenience store (shop=convenience) SUP improvements: HU (shop=convenience, SUP, -25.45%), AE (shop=convenience, SUP, -41.67%)"
-            ❌ WRONG: "Pharmacy improvements: ES (PAV, +15.2%), FR (DUP, +33.51%)" - NEVER MIX METRIC TYPES!
-            ❌ WRONG: "Furniture shop SUP improvements: CA (SUP, -35.9%)" where CA metric is actually shop=grocery not shop=furniture - VERIFY DEFINITIONTAGS!
+            ✅ CORRECT: "Pharmacy (amenity=pharmacy) PAV improvements: ES (amenity=pharmacy, PAV, +152), FR (amenity=pharmacy, PAV, +123)"
+            ✅ CORRECT: "Travel agency (tourism=travel_agency) SUP regressions: AR (tourism=travel_agency, SUP, +5185), AT (tourism=travel_agency, SUP, +3524)"
+            ✅ CORRECT: "Convenience store (shop=convenience) SUP improvements: HU (shop=convenience, SUP, -2545), AE (shop=convenience, SUP, -4167)"
+            ❌ WRONG: "Pharmacy improvements: ES (PAV, +152), FR (DUP, +3351)" - NEVER MIX METRIC TYPES!
+            ❌ WRONG: "Furniture shop SUP improvements: CA (SUP, -3590)" where CA metric is actually shop=grocery not shop=furniture - VERIFY DEFINITIONTAGS!
 
             **COMPREHENSIVE JIRA LINKING METHODOLOGY:**
             
@@ -376,24 +382,24 @@ def get_coordinator_instructions() -> str:
             3. If count ≥ 2 → Use "General"
             
             **CORRECT EXAMPLES - Single Country (count = 1):**
-            ✅ **Singapore | POI | POI | Bank (amenity=bank) PAV regression: SG (amenity=bank, PAV, -16.66%). | | Agent Analysis**
+            ✅ **Singapore | POI | POI | Bank (amenity=bank) PAV regression: SG (amenity=bank, PAV, -1666). | | Agent Analysis**
             → Why correct: Only 1 country (SG), so use "Singapore"
             
-            ✅ **Germany | POI | POI | Multi-category SUP improvements: DE (shop=grocery, SUP, -25.72%), DE (amenity=pharmacy, SUP, -18.5%), DE (shop=furniture, SUP, -12.3%). | | Agent Analysis**
+            ✅ **Germany | POI | POI | Multi-category SUP improvements: DE (shop=grocery, SUP, -2572), DE (amenity=pharmacy, SUP, -1850), DE (shop=furniture, SUP, -1230). | | Agent Analysis**
             → Why correct: Only 1 country (DE), so use "Germany" (even though multiple categories)
             
-            ✅ **Canada | POI | POI | Pharmacy (amenity=pharmacy) PAV improved: CA (amenity=pharmacy, PAV, +22.1%). | MPOI-7200 | Agent Analysis**
+            ✅ **Canada | POI | POI | Pharmacy (amenity=pharmacy) PAV improved: CA (amenity=pharmacy, PAV, +2210). | MPOI-7200 | Agent Analysis**
             → Why correct: Only 1 country (CA), so use "Canada"
             
             **CORRECT EXAMPLES - Multiple Countries (count ≥ 2):**
-            ✅ **General | POI | POI | Grocery shop (shop=grocery) SUP improvements: DE (shop=grocery, SUP, -25.72%), DK (shop=grocery, SUP, -17.1%), ES (shop=grocery, SUP, -7.41%), ID (shop=grocery, SUP, -16.67%), NZ (shop=grocery, SUP, -23.08%), PH (shop=grocery, SUP, -24.32%), CA (shop=grocery, SUP, -53.85%). | MPOI-7535 | Agent Analysis**
+            ✅ **General | POI | POI | Grocery shop (shop=grocery) SUP improvements: DE (shop=grocery, SUP, -2572), DK (shop=grocery, SUP, -1710), ES (shop=grocery, SUP, -741), ID (shop=grocery, SUP, -1667), NZ (shop=grocery, SUP, -2308), PH (shop=grocery, SUP, -2432), CA (shop=grocery, SUP, -5385). | MPOI-7535 | Agent Analysis**
             → Why correct: 7 countries (DE, DK, ES, ID, NZ, PH, CA), so use "General"
             
-            ✅ **General | POI | POI | Theme park (tourism=theme_park) PAV improvements: AU (tourism=theme_park, PAV, +12.5%), SG (tourism=theme_park, PAV, +8.3%), JP (tourism=theme_park, PAV, +15.7%). | | Agent Analysis**
+            ✅ **General | POI | POI | Theme park (tourism=theme_park) PAV improvements: AU (tourism=theme_park, PAV, +1250), SG (tourism=theme_park, PAV, +830), JP (tourism=theme_park, PAV, +1570). | | Agent Analysis**
             → Why correct: 3 countries (AU, SG, JP), so use "General"
             
             **INCORRECT EXAMPLES - DO NOT DO THIS:**
-            ❌ **General | POI | POI | Bank (amenity=bank) PAV regression: SG (amenity=bank, PAV, -16.66%). | | Agent Analysis**
+            ❌ **General | POI | POI | Bank (amenity=bank) PAV regression: SG (amenity=bank, PAV, -1666). | | Agent Analysis**
             → Why wrong: Only 1 country (SG) - should be "Singapore" not "General"
             
             ❌ **Germany/Denmark/Spain/Indonesia/New Zealand/Philippines/Canada | POI | POI | Grocery shop improvements...**
@@ -433,7 +439,7 @@ def get_coordinator_instructions() -> str:
             
             **CRITICAL** Here is an example of a release note you generated, whose format I really liked. ALL release notes should look like this in structure and markdown styling: 
             ---
-            - **Hong Kong | POI | POI | Coverage for "amenity=phxarmacy" improved by 20%. Pharmacy is a top business-impact POI type (#32 ranking). Increased coverage is likely a result of data additions or reclassification processes. Linked MPOI-7159 because agent analysis shows improvement in HK and ticket mentions category improvements and recategorization across POIs, with geolytica delivery and mapping update. | MPOI-7159 | Agent Analysis**
+            - **Hong Kong | POI | POI | Coverage for "amenity=pharmacy" improved by 450 POIs. Pharmacy is a top business-impact POI type (#32 ranking). Increased coverage is likely a result of data additions or reclassification processes. Linked MPOI-7159 because agent analysis shows improvement in HK and ticket mentions category improvements and recategorization across POIs, with geolytica delivery and mapping update. | MPOI-7159 | Agent Analysis**
 
             - *Linking logic:* HK pharmacy coverage up (agent metric) aligns with ticket "Geolytica...category improvements...recategorization," matching pattern on country (HK is commonly included in Asia-region deliveries) and tag (pharmacy in POI categorical table).
             ---

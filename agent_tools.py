@@ -161,7 +161,14 @@ def get_pav_metrics_for_apr(aprNumber: int) -> str:
     catalog = "pois_aqua_dev"
     schema = f"run_apr_{aprNumber}"
     table = "issue_list"
-    statement = f"select country, definitiontag, diff_absolute, diff_relative FROM {catalog}.{schema}.{table} WHERE validation_theme = 'pav' and abs(diff_relative) > 3 ORDER BY abs(diff_relative) DESC LIMIT 1000"
+    statement = f"""SELECT country, definitiontag, diff_absolute 
+        FROM {catalog}.{schema}.{table} 
+        WHERE validation_theme = 'pav' 
+        AND abs(diff_absolute) > 3
+        AND (pav_generics.reference_pav_available >= 100
+        OR pav_generics.actual_pav_available >= 100)
+        ORDER BY abs(diff_absolute) DESC 
+        LIMIT 1000"""
     return db.execute_sql(catalog, schema, statement)
 
 def get_ppa_metrics_for_apr(aprNumber: int) -> str:
@@ -169,7 +176,14 @@ def get_ppa_metrics_for_apr(aprNumber: int) -> str:
     catalog = "pois_aqua_dev"
     schema = f"run_apr_{aprNumber}"
     table = "issue_list"
-    statement = f"select country, definitiontag, diff_absolute, diff_relative FROM {catalog}.{schema}.{table} WHERE validation_theme = 'ppa' and abs(diff_relative) > 3 ORDER BY abs(diff_relative) DESC LIMIT 1000"
+    statement = f"""SELECT country, definitiontag, diff_absolute 
+        FROM {catalog}.{schema}.{table} 
+        WHERE validation_theme = 'ppa' 
+        AND abs(diff_absolute) > 3
+        AND (ppa_generics.reference_ppa_accurate >= 100
+        OR ppa_generics.actual_ppa_available >= 100)
+        ORDER BY abs(diff_absolute) DESC 
+        LIMIT 1000"""
     return db.execute_sql(catalog, schema, statement)
 
 def get_sup_metrics_for_apr(aprNumber: int) -> str:
@@ -177,7 +191,14 @@ def get_sup_metrics_for_apr(aprNumber: int) -> str:
     catalog = "pois_aqua_dev"
     schema = f"run_apr_{aprNumber}"
     table = "issue_list"
-    statement = f"select country, definitiontag, diff_absolute, diff_relative FROM {catalog}.{schema}.{table} WHERE validation_theme = 'sup' and abs(diff_relative) > 3 ORDER BY abs(diff_relative) DESC LIMIT 1000"
+    statement = f"""SELECT country, definitiontag, diff_absolute 
+        FROM {catalog}.{schema}.{table} 
+        WHERE validation_theme = 'sup' 
+        AND abs(diff_absolute) > 3
+        AND (sup_generics.actual_sup_matched >= 100
+        OR sup_generics.reference_sup_matched >= 100)
+        ORDER BY abs(diff_absolute) DESC 
+        LIMIT 1000"""
     return db.execute_sql(catalog, schema, statement)
 
 def get_dup_metrics_for_apr(aprNumber: int) -> str:
@@ -185,7 +206,12 @@ def get_dup_metrics_for_apr(aprNumber: int) -> str:
     catalog = "pois_aqua_dev"
     schema = f"run_apr_{aprNumber}"
     table = "issue_list"
-    statement = f"select country, definitiontag, diff_absolute, diff_relative FROM {catalog}.{schema}.{table} WHERE validation_theme = 'dup' and abs(diff_relative) > 3 ORDER BY abs(diff_relative) DESC LIMIT 1000"
+    statement = f"""SELECT country, definitiontag, diff_absolute 
+        FROM {catalog}.{schema}.{table} 
+        WHERE validation_theme = 'dup' 
+        AND abs(diff_absolute) > 30
+        ORDER BY abs(diff_absolute) DESC 
+        LIMIT 1000"""
     return db.execute_sql(catalog, schema, statement)
 
 def get_feature_rankings() -> str:

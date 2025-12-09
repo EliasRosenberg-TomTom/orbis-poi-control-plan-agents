@@ -82,19 +82,19 @@ These are NOT data changes and should NEVER be linked:
 **MATCHING EXAMPLES (LEARN FROM THESE):**
 
 ✅ **EXCELLENT Match (MPOI-7744 style):**
-Pattern: "TH (shop=convenience, PAV, -51.93%)"
+Pattern: "TH (shop=convenience, PAV, -5193)"
 Ticket MPOI-7744 title: "Thailand logic changes for shop categorization"
 Ticket description: "Modifying how shops are categorized in Thailand, will affect convenience stores, supermarkets..."
 → MATCH! Country-specific + describes actual business logic changes affecting data
 
 ✅ **STRONG Match:**
-Pattern: "TH (tourism=museum, PAV, -68.28%)"
+Pattern: "TH (tourism=museum, PAV, -682)"
 Ticket MPOI-7890 title: "Fix completeness issue in Thailand museums"
 Ticket description: "New source delivery for museum POIs in Thailand"
 → MATCH! Has "Thailand" + "museum" + mentions data/source changes
 
 ✅ **GOOD Match:**
-Pattern: "GR (shop=grocery, PAV, -31.82%)"
+Pattern: "GR (shop=grocery, PAV, -318)"
 Ticket MPOI-7891 title: "Greece grocery store data corrections"
 Ticket description: "Updating grocery store data from new provider"
 → MATCH! Has "Greece" + "grocery" + describes data change
@@ -112,18 +112,18 @@ Ticket description: "Refactoring category metric calculation code for better mai
 → NO MATCH! This is code maintenance, not data changes affecting actual categories
 
 ❌ **BAD - Wrong country assumption (DO NOT LINK):**
-Pattern: "TH (amenity=bank, PAV, +121.71%)"
+Pattern: "TH (amenity=bank, PAV, +1217)"
 Ticket MPOI-7634 title: "Reduce PAV loss in top10 countries from 8.3% to 2%"
 Ticket description: "Improvements for USA, India, Germany, UK, France, Italy, Spain, Canada, Mexico, Brazil"
 → NO MATCH! Thailand (TH) is NOT a top 10 country. Top 10 = USA, IND, DEU, GBR, FRA, ITA, ESP, CAN, MEX, BRA only
 
 ✅ **CORRECT - Top 10 country match:**
-Pattern: "USA (amenity=bank, PAV, +15%)"
+Pattern: "USA (amenity=bank, PAV, +1500)"
 Ticket MPOI-7634 title: "Reduce PAV loss in top10 countries from 8.3% to 2%"
 → MATCH! USA IS in top 10 countries list
 
 ❌ **BAD - Too generic:**
-Pattern: "ES (shop=supermarket, PAV, -15%)"
+Pattern: "ES (shop=supermarket, PAV, -1500)"
 Ticket MPOI-7894 title: "Global conflation improvements"
 Ticket description: "General improvements to conflation algorithm"
 → NO MATCH: Doesn't mention Spain specifically
