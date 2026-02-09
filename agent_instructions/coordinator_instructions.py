@@ -95,8 +95,31 @@ def get_coordinator_instructions() -> str:
             
             **STEP 3: GENERATE RELEASE NOTES**
             
-            A release note contains several component, but keeps a constant structure for clarity, and you should output them as a list to be analyzed by a MapExpert, and easily copied. 
+            A release note contains several components and keeps a constant structure for clarity. Release notes are intended for EXTERNAL CUSTOMERS and must be written in customer-friendly language.
 
+            **AUDIENCE: EXTERNAL CUSTOMERS**
+            - Write for business users who need to understand map improvements
+            - Avoid internal codes, technical jargon, and acronyms
+            - Focus on customer value: what improved, where, and the business impact
+            - Use natural, professional language suitable for official release portals
+            
+            **CRITICAL: ONLY STATE FACTS FROM DATA - NO SPECULATION**
+            - Only claim what is directly observable in the metrics and JIRA tickets
+            - DO NOT speculate about causes unless explicitly stated in linked JIRA tickets
+            - DO NOT claim "investigation ongoing" or "under review" unless confirmed in JIRA
+            - DO NOT infer business decisions or future actions
+            - DO NOT make assumptions about why changes occurred
+            - If you don't know why something happened, simply state the observed change
+            
+            **ACCEPTABLE vs UNACCEPTABLE CLAIMS:**
+            ✅ "Reduced coverage of banks in Singapore, affecting approximately 1,600 facilities."
+            ✅ "Improved coverage of pharmacies in India through new source ingestion (per MPOI-7634)."
+            ❌ "Data logic changes elsewhere may have triggered lower availability; investigation ongoing."
+            ❌ "This regression is under review by the team."
+            ❌ "We are working to restore valid locations."
+            
+            **WHEN IN DOUBT:** State only the observable change without explaining causes or next steps.
+            
             **RELEASE NOTE FORMAT - STRICT STRUCTURE:**
             Each release note MUST follow this pipe-separated format:
             `Country | Layer | Feature | Description | Jira id | Created By`
@@ -135,10 +158,28 @@ def get_coordinator_instructions() -> str:
             3. **'Feature':** Always "POI"
             
             4. **'Description':** 
-               - Brief 1-2 sentence description of the change and impact
-               - MUST include all affected countries/definitiontags with their exact metrics
-               - Format: Category (definitiontag) + metric type + direction + affected locations with metrics
-               - Example: "Grocery shop (shop=grocery) SUP improved: DE (shop=grocery, SUP, -2572), DK (shop=grocery, SUP, -1710), ES (shop=grocery, SUP, -741)"
+               - CUSTOMER-FRIENDLY language suitable for external release portals
+               - Must answer: WHAT improved/changed, WHERE (countries/regions), and optionally WHY (ONLY if confirmed in JIRA tickets)
+               - Use natural language: "Improved coverage of [category] in [country]" instead of technical codes
+               - Include approximate magnitude in customer-friendly terms (e.g., "~2,500 locations" or "15% improvement")
+               - Avoid internal codes in the main description (no "amenity=pharmacy" or "PAV, +11.07")
+               - STRUCTURE: "[What] [category name] in [country/region] [why/impact if known from JIRA]."
+               
+               **CRITICAL - CAUSATION RULES:**
+               - ONLY explain "why" if explicitly stated in a linked JIRA ticket
+               - If linked JIRA says "new source delivery" → you can say "through new source delivery"
+               - If linked JIRA says "data quality improvements" → you can say "as a result of data quality improvements"  
+               - If NO linked JIRA or JIRA doesn't explain → state ONLY the observed change
+               - NEVER add: "investigation ongoing", "under review", "may have triggered", "likely caused by"
+               
+               **EXAMPLES OF CUSTOMER-FRIENDLY DESCRIPTIONS:**
+               ✅ "Improved coverage of pharmacies in India by approximately 15%, adding ~3,400 locations." [No JIRA linked, states only the fact]
+               ✅ "Improved coverage of pharmacies in India through new source ingestion (per MPOI-7634), adding ~3,400 locations." [JIRA confirms source ingestion]
+               ✅ "Reduced coverage of banks in Singapore, affecting approximately 1,600 facilities." [No speculation about why]
+               ✅ "Removed obsolete grocery store listings across multiple European countries, improving data freshness for ~7,200 locations." [Observable fact]
+               ❌ "Reduced coverage of banks in Singapore; investigation ongoing." [SPECULATION - don't claim investigation]
+               ❌ "Data logic changes may have triggered lower availability in Israel." [SPECULATION - no proof]
+               ❌ "Pharmacy coverage improved, likely due to new sources." [Use "likely" only if JIRA confirms]
             
             5. **'Jira id':** 
                - Associated JIRA ticket (e.g., "MPOI-7159") 
@@ -146,6 +187,19 @@ def get_coordinator_instructions() -> str:
                - Leave blank if no exact string match found
             
             6. **'Created By':** Always "Agent Analysis"
+            
+            **INTERNAL NOTES (SEPARATE FROM RELEASE NOTES):**
+            - After each customer-facing release note, include a "Linking logic" section in italics
+            - This section contains technical details for internal reference (not for customers)
+            - You MAY include technical metrics here (e.g., "amenity=pharmacy, PAV +11.07")
+            - Format: *Linking logic: [explanation with technical details if helpful]*
+            
+            **EXAMPLE WITH INTERNAL NOTES:**
+            ```
+            India | POI | POI | Improved coverage of pharmacies in India by approximately 15% through new source ingestion, adding coverage for ~3,400 locations. | MPOI-7634 | Agent Analysis
+            
+            - *Linking logic:* Pattern shows IN (amenity=pharmacy, PAV, +3400). Ticket MPOI-7634 mentions India pharmacy data delivery.
+            ```
             
             **CRITICAL: DEFINITIONTAG HANDLING - EXACT MATCHES ONLY**
             
@@ -258,6 +312,12 @@ def get_coordinator_instructions() -> str:
                - IF ticket title contains "conf(BR):" → ALWAYS link to ALL patterns (global impact)
                - Example: "conf(BR): 2025-09-11-15-36-54" affects everything
             
+            4. **Broad Impact Tickets (FLEXIBLE LINKING):**
+               - IF ticket mentions "Top 40", "TOP 40", "multilingual matching", "global", "all countries"
+               - These tickets can be linked WITHOUT exact country/category string match
+               - Use logical inference: "TOP 40" includes major markets, "multilingual" affects multilingual countries
+               - Document the flexible linking rationale clearly in "Linking logic" section
+            
             **REJECTION CRITERIA - DO NOT LINK IF:**
             - ❌ Ticket says "category improvements" but doesn't mention your specific category
             - ❌ Ticket says "conflation pipeline" without naming your category/country
@@ -351,22 +411,80 @@ def get_coordinator_instructions() -> str:
             3. For matches found, verify the connection makes logical sense
             4. Include MPOI ticket number and explain the semantic link clearly
             
-            **Step 4: Special Case - BigRun PR Detection**
+            **Step 4: Special Case - Broad Impact Tickets (Flexible Linking)**
+            
+            Some tickets have widespread map impact but don't explicitly mention specific countries or categories. These require FLEXIBLE linking rules:
+            
+            **BROAD IMPACT INDICATORS - ALWAYS INVESTIGATE THESE TICKETS:**
+            
+            1. **"Top 40" or "TOP 40" or "Top 10" or "TOP 10" countries:**
+               - Refers to the 40 most important countries in the map
+               - Link to patterns in ANY of the major countries (US, DE, FR, ES, GB, IT, CA, AU, JP, etc.)
+               - Even without explicit country mention, if ticket says "Top 40", consider linking to patterns in major markets
+               - Example: "Enable multilingual matching for more countries in TOP 40" → Can link to any major country pattern
+            
+            2. **"Multilingual matching" or "multilingual" features:**
+               - **CRITICAL:** Multilingual matching is a COMMON CAUSE of metric fluctuations
+               - Affects POI matching across different language names/translations
+               - Can cause both PAV improvements (better matching) and regressions (over-matching)
+               - **LINKING RULE:** If ticket mentions "multilingual" AND pattern shows metric changes in countries with multiple languages, LINK IT
+               - Common multilingual countries: Canada (EN/FR), Switzerland (DE/FR/IT), Belgium (NL/FR), India (many), Singapore (EN/ZH/ML/TA)
+               - Example: "Enable multilingual matching in TOP 40" + Pattern shows "CA pharmacy PAV improvement" → LINK (Canada has EN/FR)
+            
+            3. **"Global" or "all countries" or "worldwide":**
+               - Link to multiple patterns across different countries
+               - Similar to BigRun impact but from feature rollouts
+            
+            4. **"Category metric" or "attribution improvements":**
+               - May affect specific categories without naming them
+               - Link if the timing and countries align with observed patterns
+               - Be more flexible with category matching for these tickets
+            
+            5. **"Conflation pipeline" or "data pipeline" improvements:**
+               - Can have broad impact across categories/countries
+               - Link if no more specific ticket exists for the pattern
+            
+            **FLEXIBLE LINKING WORKFLOW FOR BROAD IMPACT TICKETS:**
+            1. Identify broad impact indicators in ticket title/description
+            2. For "Top 40" tickets: Consider linking to patterns in major markets even without country name match
+            3. For "multilingual" tickets: Prioritize linking to multilingual countries or countries in the ticket's timeframe
+            4. Document the flexible link in "Linking logic" section 
+            5. Explain WHY you linked despite not having exact string match (e.g., "Top 40 includes Canada")
+            
+            **LINKING LOGIC FORMAT FOR BROAD IMPACT TICKETS:**
+            ```
+            - *Linking logic:*
+              • Pattern elements: CA pharmacy PAV improvement
+              • Ticket MPOI-#### title: "Enable multilingual matching for more countries in TOP 40"
+              • Flexible link rationale: Canada is in TOP 40 countries; multilingual matching (EN/FR) likely contributed to pharmacy PAV improvement
+              • String match: No exact country mention, but TOP 40 indicator + multilingual feature + timing alignment
+            ```
+            
+            **VALIDATION QUESTIONS FOR FLEXIBLE LINKING:**
+            1. Does the ticket mention a broad impact indicator? (Top 40, multilingual, global, etc.)
+            2. Is the pattern in a country/category that would logically be affected?
+            3. Is there NO other more specific ticket that better explains the pattern?
+            4. Can you articulate a logical connection in the "Linking logic" section?
+            
+            If YES to all four → LINK THE TICKET even without exact string match
+            
+            **Step 5: Special Case - BigRun PR Detection**
             - **EXHAUSTIVELY SCAN ALL PRs** for 'conf(BR):' prefix in titles
             - Include both direct APR PRs and bundled PRs from daily rollups/RCs
             - List ALL BigRun PRs in dedicated section with full titles
             - Example: "BigRun PR 3984 (`conf(BR): 2025-09-11-15-36-54`) was included via PR 4007"
             
-            **Step 5: Prioritization Using Feature Rankings**
+            **Step 6: Prioritization Using Feature Rankings**
             - Always call get_feature_rankings() first to retrieve feature importance rankings
             - Prioritize linking efforts on high-ranked features (lower rank numbers)
             - Even small changes in critical features should be linked if relevant tickets exist
             - Override percentage magnitude with feature ranking importance
             
-            **Step 6: Pattern Analysis Focus Areas**
+            **Step 7: Pattern Analysis Focus Areas**
             - Focus on patterns affecting multiple countries in same category
             - Focus on patterns affecting multiple categories in same country  
             - **Exception:** Always report changes in high-ranked features regardless of sample size
+            - **Exception:** Always investigate broad-impact tickets (Top 40, multilingual, global) for potential links
             
             Always, always, always include the direct metrics from the agents in your release notes. A user should understand: the pattern found, the metrics changes that comprise that pattern, and the likely cause from the linked PR/MPOI ticket.
             **CRITICAL** Postive increases in PAV and PPA are improvements. A positive change in PAV means out of the sample of POIs we expect to be there, our logic created those POIs. 
@@ -380,69 +498,103 @@ def get_coordinator_instructions() -> str:
             1. Count unique countries in the pattern
             2. If count = 1 → Use country name (Singapore, Germany, etc.)
             3. If count ≥ 2 → Use "General"
+            4. Write description in CUSTOMER-FRIENDLY language (what/where/why)
+            5. Avoid internal codes in main description
             
-            **CORRECT EXAMPLES - Single Country (count = 1):**
-            ✅ **Singapore | POI | POI | Bank (amenity=bank) PAV regression: SG (amenity=bank, PAV, -1666). | | Agent Analysis**
-            → Why correct: Only 1 country (SG), so use "Singapore"
+            **CORRECT EXAMPLES - CUSTOMER-FRIENDLY FORMAT:**
             
-            ✅ **Germany | POI | POI | Multi-category SUP improvements: DE (shop=grocery, SUP, -2572), DE (amenity=pharmacy, SUP, -1850), DE (shop=furniture, SUP, -1230). | | Agent Analysis**
-            → Why correct: Only 1 country (DE), so use "Germany" (even though multiple categories)
+            ✅ **India | POI | POI | Improved coverage of pharmacies in India by approximately 15% through new source ingestion, adding coverage for ~3,400 locations. | MPOI-7634 | Agent Analysis**
+            → Why correct: Single country (India), natural language, explains what/where/why, customer-friendly magnitude
             
-            ✅ **Canada | POI | POI | Pharmacy (amenity=pharmacy) PAV improved: CA (amenity=pharmacy, PAV, +2210). | MPOI-7200 | Agent Analysis**
-            → Why correct: Only 1 country (CA), so use "Canada"
+            ✅ **Singapore | POI | POI | Reduced coverage of bank locations in Singapore, affecting approximately 1,600 facilities. | MPOI-7890 | Agent Analysis**
+            → Why correct: Single country, states only observable facts without speculation
             
-            **CORRECT EXAMPLES - Multiple Countries (count ≥ 2):**
-            ✅ **General | POI | POI | Grocery shop (shop=grocery) SUP improvements: DE (shop=grocery, SUP, -2572), DK (shop=grocery, SUP, -1710), ES (shop=grocery, SUP, -741), ID (shop=grocery, SUP, -1667), NZ (shop=grocery, SUP, -2308), PH (shop=grocery, SUP, -2432), CA (shop=grocery, SUP, -5385). | MPOI-7535 | Agent Analysis**
-            → Why correct: 7 countries (DE, DK, ES, ID, NZ, PH, CA), so use "General"
+            ✅ **General | POI | POI | Improved data freshness of grocery stores across multiple countries (Germany, Denmark, Spain, Indonesia, New Zealand, Philippines, Canada) by removing approximately 15,000 obsolete listings as a result of new source validation. | MPOI-7535 | Agent Analysis**
+            → Why correct: Multiple countries so "General", lists countries in natural language, explains business value
             
-            ✅ **General | POI | POI | Theme park (tourism=theme_park) PAV improvements: AU (tourism=theme_park, PAV, +1250), SG (tourism=theme_park, PAV, +830), JP (tourism=theme_park, PAV, +1570). | | Agent Analysis**
-            → Why correct: 3 countries (AU, SG, JP), so use "General"
+            ✅ **Canada | POI | POI | Enhanced coverage of pharmacies, grocery stores, and furniture stores in Canada through new source additions and data conflation improvements, affecting ~7,600 locations across multiple retail categories. | MPOI-7200 | Agent Analysis**
+            → Why correct: Single country, multiple categories described naturally, clear business impact
             
             **INCORRECT EXAMPLES - DO NOT DO THIS:**
+            ❌ **India | POI | POI | Pharmacy (amenity=pharmacy) PAV improvement: IN (amenity=pharmacy, PAV, +11.07). | MPOI-7634 | Agent Analysis**
+            → Why wrong: TOO TECHNICAL - uses internal codes (amenity=pharmacy, PAV, +11.07) instead of customer-friendly language
+            
             ❌ **General | POI | POI | Bank (amenity=bank) PAV regression: SG (amenity=bank, PAV, -1666). | | Agent Analysis**
-            → Why wrong: Only 1 country (SG) - should be "Singapore" not "General"
+            → Why wrong: Only 1 country (SG) - should be "Singapore" not "General", AND uses technical codes
             
-            ❌ **Germany/Denmark/Spain/Indonesia/New Zealand/Philippines/Canada | POI | POI | Grocery shop improvements...**
-            → Why wrong: Multiple countries - should be "General" not country list
+            ❌ **Singapore | POI | POI | SG (amenity=bank, PAV, -1666) | | Agent Analysis**
+            → Why wrong: Description is just raw metrics - no customer-friendly explanation of what/where
             
-            ❌ **DE, DK, ES, ID, NZ, PH, CA | POI | POI | Grocery shop improvements...**
-            → Why wrong: Multiple countries - should be "General" not country codes
+            ❌ **Singapore | POI | POI | Reduced coverage of banks in Singapore; investigation ongoing to determine cause. | | Agent Analysis**
+            → Why wrong: Claims "investigation ongoing" without proof from JIRA - only state observable facts
             
-            ❌ **Multiple Countries | POI | POI | Grocery shop improvements...**
-            → Why wrong: Use "General" not "Multiple Countries"
-
-            Below are several rows of examples of real release notes created by developers, to illustrate the structure and level of detail expected. Note that these examples are illustrative; your actual output should be based on the specific analyses you receive from the agents.
-
-            General | POI | POI | In TWN, the city component of addresses in all Chinese scripts will no longer have a comma-space separator between the district and the city. This impacts ~96% of the POIs in Taiwan. If the city component has no explicit language, a comma-space separator will still be used. | MPOI-7005 | Jira Automation
-
-            General | POI | POI | Improved coverage of Honda car dealers and car repairs in USA (~2000 locations) and Moya fuel stations in POL (~500 locations) as a result of new source deliveries. | MPOI-6967 | Jira Automation
-
-            General | POI | POI | Coverage of Renault, Apline, and Dacia branded POIs has improved as a result of new source addition. | MPOI-6548 | Jira Automation
-
-            General | POI | POI | Coverage of EvoBus branded POIs is improved as a result of new source addition. | MPOI-6542 | Jira Automation
-
-            General | POI | POI | Coverage of Subaru branded POIs is improved as a result of new source addition. | MPOI-6291 | Jira Automation
-
-            General | Visualization | Building | GERS ID format has been updated to the UUID definition for Buildings globally | | asena.sahin@tomtom.com
-
-            Canada | ENS | General | Parts of this work contain information licensed under the Open Government License – Canada version 2.0. | CM-11969 | Jira Automation
-
-            India | POI | POI | Improved coverage of petrol stations in India through new sources. Addition of 15k new POIs. | MPOI-6919 | Jira Automation
-
-            Taiwan | POI | POI | For THA, 4.6k out of business flags have been added and confidence scores have been improved for 27K POIs. Special focus on following regions: Bangkok. | MPOI-6996 | Jira Automation
-
-            Taiwan | POI | POI | For TWN, ~7.7k out of business flags have been added and confidence scores have been improved for 43.7K POIs with focus on Taiwan Taipei area. | MPOI-6981 | Jira Automation
-
-            Taiwan | POI | POI | In TWN, 130k missing local names of POIs have been added. | MPOI-6620 | Jira Automation
-
-            United States | POI | POI | For USA, 370 out of business flags have been added and confidence scores have been improved for 2450 POIs. Special focus on following regions: Ohio. | MPOI-7010 | Jira Automation
+            ❌ **Germany/Denmark/Spain | POI | POI | Grocery shop improvements...**
+            → Why wrong: Multiple countries - should be "General" not country list in Country column
             
-            **CRITICAL** Here is an example of a release note you generated, whose format I really liked. ALL release notes should look like this in structure and markdown styling: 
+            ❌ **General | POI | POI | Improved POI metrics in multiple categories. | MPOI-7535 | Agent Analysis**
+            → Why wrong: Too vague - doesn't explain WHAT improved, WHERE specifically, or WHY it matters
+
+            **REFERENCE EXAMPLES: Real release notes for external customers**
+            
+            These examples show the expected customer-friendly tone and structure. Note how they:
+            - Use natural language suitable for external customers
+            - Explain WHAT changed, WHERE, and business impact
+            - Avoid internal codes and technical jargon
+            - Provide approximate magnitudes in customer-friendly terms
+            
+            General | POI | POI | Improved coverage of Honda car dealers and car repairs in USA (~2,000 locations) and Moya fuel stations in Poland (~500 locations) as a result of new source deliveries. | MPOI-6967 | Jira Automation
+
+            India | POI | POI | Improved coverage of petrol stations in India through new sources, adding approximately 15,000 new locations. | MPOI-6919 | Jira Automation
+
+            Taiwan | POI | POI | Enhanced data freshness in Thailand by adding 4,600 out-of-business flags and improving confidence scores for 27,000 POIs, with special focus on Bangkok region. | MPOI-6996 | Jira Automation
+
+            Taiwan | POI | POI | Added approximately 130,000 missing local names for POIs in Taiwan, improving local language support and navigation accuracy. | MPOI-6620 | Jira Automation
+
+            United States | POI | POI | Improved data freshness in USA by adding 370 out-of-business flags and enhancing confidence scores for 2,450 POIs, with focus on Ohio region. | MPOI-7010 | Jira Automation
+            
+            **KEY DIFFERENCES FROM TECHNICAL INTERNAL FORMAT:**
+            - ❌ Internal/Technical: "Pharmacy (amenity=pharmacy) PAV improvement: IN (amenity=pharmacy, PAV, +11.07)"
+            - ✅ Customer-Friendly: "Improved coverage of pharmacies in India by ~3,400 locations"
+            - ❌ Speculation: "Improved coverage of pharmacies in India through new source ingestion, adding ~3,400 locations" [ONLY if JIRA confirms source ingestion]
+            - ❌ Unfounded Claims: "Data logic changes may have triggered lower availability; investigation ongoing" [NO speculation or false claims]
+            
+            The customer version states observable facts. Technical metrics go in "Linking logic". Causation only if confirmed by JIRA.
+            
+            **CRITICAL: CUSTOMER-FRIENDLY VS TECHNICAL LANGUAGE**
+            
+            The agent analysis contains technical metrics (definitiontags, metric codes, precise percentages). However, RELEASE NOTES for external customers must translate this into business language:
+            
+            **TRANSLATION GUIDE:**
+            - Agent metric: "amenity=pharmacy" → Release note: "pharmacies"
+            - Agent metric: "shop=supermarket" → Release note: "supermarkets"
+            - Agent metric: "tourism=theme_park" → Release note: "theme parks"
+            - Agent metric: "PAV +11.07" → Release note: "improved coverage by ~3,400 locations" or "increased coverage by approximately 15%"
+            - Agent metric: "PAV -1666" → Release note: "reduced coverage, affecting ~1,600 locations"
+            - Agent metric: "SUP -2572" → Release note: "removed ~2,600 obsolete listings"
+            - Agent metric: "PPA +850" → Release note: "improved positioning accuracy for ~850 locations"
+            
+            **CAUSATION ONLY FROM JIRA:**
+            - IF JIRA ticket says "new source delivery" → "through new source delivery" or "as a result of new source additions"
+            - IF JIRA ticket says "conflation improvements" → "through data conflation improvements"
+            - IF NO JIRA or JIRA doesn't explain → Just state the change without explaining why
+            - NEVER add your own speculation about causes
+            
+            **PREFERRED RELEASE NOTE EXAMPLE:**
             ---
-            - **Hong Kong | POI | POI | Coverage for "amenity=pharmacy" improved by 450 POIs. Pharmacy is a top business-impact POI type (#32 ranking). Increased coverage is likely a result of data additions or reclassification processes. Linked MPOI-7159 because agent analysis shows improvement in HK and ticket mentions category improvements and recategorization across POIs, with geolytica delivery and mapping update. | MPOI-7159 | Agent Analysis**
-
-            - *Linking logic:* HK pharmacy coverage up (agent metric) aligns with ticket "Geolytica...category improvements...recategorization," matching pattern on country (HK is commonly included in Asia-region deliveries) and tag (pharmacy in POI categorical table).
+            **Hong Kong | POI | POI | Improved coverage of pharmacies in Hong Kong by approximately 450 locations. | MPOI-7159 | Agent Analysis**
+            
+            - *Linking logic:* Pattern shows pharmacy coverage improvement in HK (amenity=pharmacy, PAV +450). Ticket MPOI-7159 title mentions "Geolytica category improvements and recategorization" which aligns with the observed pharmacy coverage increase in Hong Kong region.
             ---
+            
+            **NOTE:** The release note itself doesn't explain "why" because the JIRA ticket doesn't explicitly state it caused pharmacy improvements. If the JIRA said "pharmacy source delivery in Hong Kong", then you could add "through new source delivery" to the description.
+            
+            **WHY THIS FORMAT WORKS:**
+            - ✅ Natural business language ("pharmacies" not "amenity=pharmacy")
+            - ✅ Clear magnitude ("~450 locations" not "PAV +11.07")
+            - ✅ States observable facts (WHAT happened, WHERE it happened)
+            - ✅ No speculation about causes or ongoing investigations
+            - ✅ Suitable for external customer release portal
+            - ✅ Technical details preserved in "Linking logic" for internal reference
 
             **FINAL STEP: STRUCTURED OUTPUT BY METRIC TYPE**
             After completing your APR analysis, organize release notes into SEPARATE SECTIONS by metric type:
