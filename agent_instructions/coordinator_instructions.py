@@ -188,17 +188,18 @@ def get_coordinator_instructions() -> str:
             
             6. **'Created By':** Always "Agent Analysis"
             
-            **INTERNAL NOTES (SEPARATE FROM RELEASE NOTES):**
+            **INTERNAL NOTES (SEPARATE FROM RELEASE NOTES) - MANDATORY FOR ALL RELEASE NOTES:**
             - After each customer-facing release note, include a "Linking logic" section in italics
             - This section contains technical details for internal reference (not for customers)
-            - You MAY include technical metrics here (e.g., "amenity=pharmacy, PAV +11.07")
-            - Format: *Linking logic: [explanation with technical details if helpful]*
+            - You MUST include the EXACT metric from the agent (e.g., "amenity=pharmacy, PAV +11.07")
+            - This is where the TECHNICAL metric details go - the customer description should NOT include raw metric values
+            - Format: *Linking logic: Exact metric: [country (definitiontag, metric_type, value)]. Ticket link: [explanation]*
             
             **EXAMPLE WITH INTERNAL NOTES:**
             ```
-            India | POI | POI | Improved coverage of pharmacies in India by approximately 15% through new source ingestion, adding coverage for ~3,400 locations. | MPOI-7634 | Agent Analysis
+            India | POI | POI | Improved coverage of pharmacies in India through new source ingestion. | MPOI-7634 | Agent Analysis
             
-            - *Linking logic:* Pattern shows IN (amenity=pharmacy, PAV, +3400). Ticket MPOI-7634 mentions India pharmacy data delivery.
+            - *Linking logic:* Exact metric: IN (amenity=pharmacy, PAV, +11.07). This represents an improvement in the availability metric for pharmacy POIs against the sample set. Ticket link: MPOI-7634 mentions India pharmacy data delivery.
             ```
             
             **CRITICAL: DEFINITIONTAG HANDLING - EXACT MATCHES ONLY**
@@ -506,14 +507,19 @@ def get_coordinator_instructions() -> str:
             ✅ **India | POI | POI | Improved coverage of pharmacies in India by approximately 15% through new source ingestion, adding coverage for ~3,400 locations. | MPOI-7634 | Agent Analysis**
             → Why correct: Single country (India), natural language, explains what/where/why, customer-friendly magnitude
             
-            ✅ **Singapore | POI | POI | Reduced coverage of bank locations in Singapore, affecting approximately 1,600 facilities. | MPOI-7890 | Agent Analysis**
-            → Why correct: Single country, states only observable facts without speculation
+            **CORRECT EXAMPLES - CUSTOMER-FRIENDLY FORMAT:**
             
-            ✅ **General | POI | POI | Improved data freshness of grocery stores across multiple countries (Germany, Denmark, Spain, Indonesia, New Zealand, Philippines, Canada) by removing approximately 15,000 obsolete listings as a result of new source validation. | MPOI-7535 | Agent Analysis**
-            → Why correct: Multiple countries so "General", lists countries in natural language, explains business value
+            ✅ **India | POI | POI | Improved coverage of pharmacies in India through new source ingestion. | MPOI-7634 | Agent Analysis**
+            → Why correct: Single country (India), natural language, explains what/where/why without claiming POI counts
             
-            ✅ **Canada | POI | POI | Enhanced coverage of pharmacies, grocery stores, and furniture stores in Canada through new source additions and data conflation improvements, affecting ~7,600 locations across multiple retail categories. | MPOI-7200 | Agent Analysis**
-            → Why correct: Single country, multiple categories described naturally, clear business impact
+            ✅ **Singapore | POI | POI | Reduced coverage of bank locations in Singapore. | MPOI-7890 | Agent Analysis**
+            → Why correct: Single country, states only observable facts without speculation, no false POI count claims
+            
+            ✅ **General | POI | POI | Improved data freshness of grocery stores across multiple countries (Germany, Denmark, Spain, Indonesia, New Zealand, Philippines, Canada) by removing obsolete listings as a result of new source validation. | MPOI-7535 | Agent Analysis**
+            → Why correct: Multiple countries so "General", lists countries in natural language, explains business value without specific counts
+            
+            ✅ **Canada | POI | POI | Enhanced coverage of pharmacies, grocery stores, and furniture stores in Canada through new source additions and data conflation improvements. | MPOI-7200 | Agent Analysis**
+            → Why correct: Single country, multiple categories described naturally, clear business impact without claiming specific POI counts
             
             **INCORRECT EXAMPLES - DO NOT DO THIS:**
             ❌ **India | POI | POI | Pharmacy (amenity=pharmacy) PAV improvement: IN (amenity=pharmacy, PAV, +11.07). | MPOI-7634 | Agent Analysis**
@@ -524,6 +530,9 @@ def get_coordinator_instructions() -> str:
             
             ❌ **Singapore | POI | POI | SG (amenity=bank, PAV, -1666) | | Agent Analysis**
             → Why wrong: Description is just raw metrics - no customer-friendly explanation of what/where
+            
+            ❌ **Norway | POI | POI | Improved coverage of pharmacies in Norway, adding approximately 6 locations. | MPOI-7159 | Agent Analysis**
+            → Why wrong: Claims specific POI count from sample-based metric - PAV +6 doesn't mean 6 POIs were added
             
             ❌ **Singapore | POI | POI | Reduced coverage of banks in Singapore; investigation ongoing to determine cause. | | Agent Analysis**
             → Why wrong: Claims "investigation ongoing" without proof from JIRA - only state observable facts
@@ -540,38 +549,146 @@ def get_coordinator_instructions() -> str:
             - Use natural language suitable for external customers
             - Explain WHAT changed, WHERE, and business impact
             - Avoid internal codes and technical jargon
-            - Provide approximate magnitudes in customer-friendly terms
             
-            General | POI | POI | Improved coverage of Honda car dealers and car repairs in USA (~2,000 locations) and Moya fuel stations in Poland (~500 locations) as a result of new source deliveries. | MPOI-6967 | Jira Automation
+            **IMPORTANT:** These reference examples are from "Jira Automation" (a different system that may have access to actual source delivery counts).
+            For "Agent Analysis" release notes based on PAV/PPA/SUP/DUP metrics, DO NOT claim specific POI counts unless a percentage is provided.
+            
+            General | POI | POI | Improved coverage of Honda car dealers and car repairs in USA and Moya fuel stations in Poland as a result of new source deliveries. | MPOI-6967 | Jira Automation
 
-            India | POI | POI | Improved coverage of petrol stations in India through new sources, adding approximately 15,000 new locations. | MPOI-6919 | Jira Automation
+            India | POI | POI | Improved coverage of petrol stations in India through new sources. | MPOI-6919 | Jira Automation
 
-            Taiwan | POI | POI | Enhanced data freshness in Thailand by adding 4,600 out-of-business flags and improving confidence scores for 27,000 POIs, with special focus on Bangkok region. | MPOI-6996 | Jira Automation
+            Taiwan | POI | POI | Enhanced data freshness in Thailand by improving out-of-business flagging and confidence scores for POIs, with special focus on Bangkok region. | MPOI-6996 | Jira Automation
 
-            Taiwan | POI | POI | Added approximately 130,000 missing local names for POIs in Taiwan, improving local language support and navigation accuracy. | MPOI-6620 | Jira Automation
+            Taiwan | POI | POI | Improved local language support and navigation accuracy for POIs in Taiwan. | MPOI-6620 | Jira Automation
 
-            United States | POI | POI | Improved data freshness in USA by adding 370 out-of-business flags and enhancing confidence scores for 2,450 POIs, with focus on Ohio region. | MPOI-7010 | Jira Automation
+            United States | POI | POI | Improved data freshness in USA by enhancing out-of-business flags and confidence scores for POIs, with focus on Ohio region. | MPOI-7010 | Jira Automation
             
             **KEY DIFFERENCES FROM TECHNICAL INTERNAL FORMAT:**
             - ❌ Internal/Technical: "Pharmacy (amenity=pharmacy) PAV improvement: IN (amenity=pharmacy, PAV, +11.07)"
-            - ✅ Customer-Friendly: "Improved coverage of pharmacies in India by ~3,400 locations"
-            - ❌ Speculation: "Improved coverage of pharmacies in India through new source ingestion, adding ~3,400 locations" [ONLY if JIRA confirms source ingestion]
-            - ❌ Unfounded Claims: "Data logic changes may have triggered lower availability; investigation ongoing" [NO speculation or false claims]
+            - ✅ Customer-Friendly: "Improved coverage of pharmacies in India" [no POI count claim from sample metric]
+            - ✅ Customer-Friendly with percentage: "Improved coverage of pharmacies in India by approximately 15%" [when agent provides percentage]
+            - ❌ False POI Count Claim: "Improved coverage of pharmacies in India, adding 6 locations" [PAV +6 doesn't mean 6 POIs added]
+            - ❌ Unfounded Claims: "Data logic changes may have triggered lower availability; investigation ongoing" [NO speculation]
             
-            The customer version states observable facts. Technical metrics go in "Linking logic". Causation only if confirmed by JIRA.
+            The customer version states observable directional changes. Technical metrics go in "Linking logic". Causation only if confirmed by JIRA.
             
             **CRITICAL: CUSTOMER-FRIENDLY VS TECHNICAL LANGUAGE**
             
             The agent analysis contains technical metrics (definitiontags, metric codes, precise percentages). However, RELEASE NOTES for external customers must translate this into business language:
             
-            **TRANSLATION GUIDE:**
+            **CRITICAL: UNDERSTANDING WHAT METRICS ACTUALLY MEAN**
+            
+            **OFFICIAL METRIC DEFINITIONS - READ THIS CAREFULLY:**
+            
+            **PAV - POI Availability**
+            - **Definition:** Measures the percentage of POIs that are present in a reference/benchmark dataset compared to the current pipeline output
+            - **Full Name:** POI Availability
+            - **Unit:** Percentage (%)
+            - **Calculation:** (Matched POIs / Total Reference POIs) × 100
+            - **Matching Threshold:** 50m distance for matching
+            - **What it means:** This is a SAMPLE-BASED METRIC measuring data completeness
+            - **Main metric reported to customers** and used to drive decisions
+            - **Important:** "PAV +6" means the availability percentage improved by 6 points against the reference dataset
+            - **DO NOT say:** "added 6 POIs" or "removed 1666 POIs" - these are percentage changes, not raw counts
+            
+            **PPA - POI Positional Accuracy**
+            - **Definition:** Measures the percentage of matched POIs (from PAV) that are within a 50-meter distance threshold from their reference positions in the reference/benchmark dataset
+            - **Full Name:** POI Positional Accuracy
+            - **Unit:** Percentage (%)
+            - **Calculation:** (POIs within 50m / Total Matched POIs) × 100
+            - **Threshold:** 50 meters
+            - **What it means:** Measures location precision of found POIs compared with positions from reference dataset
+            - **Difference from PAV:** PPA measures position accuracy of found POIs, PAV measures availability/completeness
+            - **Positive values:** Better positioning accuracy
+            - **Negative values:** Worse positioning accuracy
+            
+            **SUP - Superfluousness**
+            - **Definition:** Measures the percentage of POIs in the current dataset that are NOT present in the reference dataset, indicating potential issues like over-production of POIs, wrong categorization, sub-optimal matching/clustering, or sub-optimal conflation
+            - **Full Name:** Superfluousness
+            - **Unit:** Percentage (%)
+            - **Calculation:** (Non-matched POIs / Total Current POIs) × 100
+            - **What it means:** Measures excess/over-production of POIs (potential false positives)
+            - **High SUP indicates:** Many POIs not in reference data - could be obsolete, miscategorized, or duplicate entries
+            - **Opposite of PAV:** SUP measures excess while PAV measures completeness
+            - **Positive values:** BAD (more POIs not in reference = potential over-production)
+            - **Negative values:** GOOD (fewer excess POIs = better data quality)
+            - **Example:** "SUP -2572" means superfluousness percentage decreased (improvement)
+            
+            **DUP - Duplication**
+            - **Definition:** Measures the rate of duplicate POIs within the dataset, indicating data quality issues related to redundant entries
+            - **Full Name:** POI Duplicate rate
+            - **Unit:** Percentage (%)
+            - **Detection:** Detected in Aqua POI pipeline after Conflation step using tailored logic from MapExperts
+            - **What causes high DUP:** Multiple providers providing same source POI and sub-optimal clustering that can't group similar source POIs together
+            - **Positive values:** BAD (higher duplicate rate)
+            - **Negative values:** GOOD (lower duplicate rate = better de-duplication)
+            - **Example:** "DUP -800" means duplication rate decreased (fewer duplicates)
+            
+            **CRITICAL RULE: DO NOT CLAIM RAW POI COUNTS**
+            
+            These metrics are PERCENTAGES measuring quality against reference/benchmark datasets, NOT raw POI counts:
+            
+            - ❌ WRONG: "added 6 locations" (PAV is a percentage, not a count)
+            - ❌ WRONG: "removed 1,666 facilities" (metric values are percentage points, not POI counts)
+            - ❌ WRONG: "affecting approximately 2,600 locations" (SUP measures percentage of excess POIs, not absolute count)
+            - ✅ CORRECT: "improved coverage" (for positive PAV - higher % of reference POIs matched)
+            - ✅ CORRECT: "reduced coverage" (for negative PAV - lower % of reference POIs matched)
+            - ✅ CORRECT: "enhanced data quality" (for negative SUP - lower % of excess POIs)
+            - ✅ CORRECT: "improved de-duplication" (for negative DUP - lower % of duplicates)
+            - ✅ CORRECT: "improved coverage by approximately 15%" (when agent provides specific percentage)
+            
+            **HOW TO WRITE CUSTOMER-FRIENDLY DESCRIPTIONS:**
+            
+            **STEP 1: Translate category codes to natural language**
             - Agent metric: "amenity=pharmacy" → Release note: "pharmacies"
             - Agent metric: "shop=supermarket" → Release note: "supermarkets"
             - Agent metric: "tourism=theme_park" → Release note: "theme parks"
-            - Agent metric: "PAV +11.07" → Release note: "improved coverage by ~3,400 locations" or "increased coverage by approximately 15%"
-            - Agent metric: "PAV -1666" → Release note: "reduced coverage, affecting ~1,600 locations"
-            - Agent metric: "SUP -2572" → Release note: "removed ~2,600 obsolete listings"
-            - Agent metric: "PPA +850" → Release note: "improved positioning accuracy for ~850 locations"
+            
+            **STEP 2: Describe the DIRECTION of change, not raw numbers**
+            
+            For **PAV (availability) metrics:**
+            - Positive PAV → "Improved coverage of [category] in [country]"
+            - Negative PAV → "Reduced coverage of [category] in [country]"
+            - DO NOT add POI counts unless the agent specifically provides a percentage
+            - If percentage given: "PAV +15.2%" → "improved coverage by approximately 15%"
+            
+            For **PPA (positional accuracy) metrics:**
+            - Positive PPA → "Enhanced positioning accuracy for [category] in [country]"
+            - Negative PPA → "Decreased positioning accuracy for [category] in [country]"
+            
+            For **SUP (superfluousness) metrics:**
+            - Negative SUP → "Improved data freshness of [category] in [country] by removing obsolete listings"
+            - Positive SUP → "Increase in potentially obsolete [category] listings in [country]"
+            
+            For **DUP (duplication) metrics:**
+            - Negative DUP → "Improved de-duplication of [category] POIs in [country]"
+            - Positive DUP → "Increase in duplicate [category] POIs in [country]"
+            
+            **STEP 3: Add context from JIRA if available**
+            - IF JIRA says "new source delivery" → add "through new source ingestion"
+            - IF JIRA says "conflation improvements" → add "as a result of data quality improvements"
+            - Otherwise, just state the directional change
+            
+            **CRITICAL RULE: INCLUDE EXACT METRICS IN LINKING LOGIC FOR DEBUGGING**
+            - In the "Linking logic" section, write: "Exact metric: [country (definitiontag, metric_type, value)]"
+            - Then explain what the metric represents (sample-based improvement/regression)
+            - Then link to JIRA ticket if applicable
+            
+            **EXAMPLES OF CORRECT LINKING LOGIC:**
+            - "Exact metric: NO (amenity=pharmacy, PAV, +6). This represents an improvement in pharmacy availability against the sample set in Norway."
+            - "Exact metric: SG (amenity=bank, PAV, -1666). This represents a decrease in bank availability against the sample set in Singapore."
+            - "Exact metric: DE (shop=grocery, SUP, -2572). This represents a decrease in superfluousness (improvement) for grocery stores in Germany."
+            
+            **VALIDATION CHECKLIST - BEFORE WRITING ANY RELEASE NOTE:**
+            1. ✅ Do I have the EXACT metric from the agent? (e.g., "NO (amenity=pharmacy, PAV, +6)")
+            2. ✅ Have I described the change directionally (improved/reduced coverage) without claiming raw POI counts?
+            3. ✅ If a percentage was provided, am I using only the percentage in the description?
+            4. ✅ If NO percentage was provided, am I avoiding specific numbers in the customer description?
+            5. ✅ Have I included "Exact metric:" in my Linking logic section?
+            6. ✅ Does my customer description focus on WHAT/WHERE/WHY without technical metric values?
+            7. ✅ Are the technical details (metric values) preserved ONLY in the Linking logic section?
+            
+            **IF YOU CANNOT ANSWER YES TO ALL 7 QUESTIONS, DO NOT WRITE THE RELEASE NOTE. GO BACK AND GET THE EXACT METRIC.**
             
             **CAUSATION ONLY FROM JIRA:**
             - IF JIRA ticket says "new source delivery" → "through new source delivery" or "as a result of new source additions"
@@ -579,22 +696,55 @@ def get_coordinator_instructions() -> str:
             - IF NO JIRA or JIRA doesn't explain → Just state the change without explaining why
             - NEVER add your own speculation about causes
             
-            **PREFERRED RELEASE NOTE EXAMPLE:**
+            **PREFERRED RELEASE NOTE EXAMPLES WITH COMPLETE LINKING LOGIC:**
             ---
-            **Hong Kong | POI | POI | Improved coverage of pharmacies in Hong Kong by approximately 450 locations. | MPOI-7159 | Agent Analysis**
+            **Example 1: PAV improvement (no percentage given)**
             
-            - *Linking logic:* Pattern shows pharmacy coverage improvement in HK (amenity=pharmacy, PAV +450). Ticket MPOI-7159 title mentions "Geolytica category improvements and recategorization" which aligns with the observed pharmacy coverage increase in Hong Kong region.
+            **Norway | POI | POI | Improved coverage of pharmacies in Norway. | MPOI-7159 | Agent Analysis**
+            
+            - *Linking logic:* Exact metric: NO (amenity=pharmacy, PAV, +6). This represents an improvement in pharmacy availability against the sample set in Norway. Ticket link: MPOI-7159 title mentions "Geolytica category improvements" which aligns with pharmacy coverage increase.
+            
+            ---
+            **Example 2: PAV regression (no percentage given)**
+            
+            **Singapore | POI | POI | Reduced coverage of bank locations in Singapore. | | Agent Analysis**
+            
+            - *Linking logic:* Exact metric: SG (amenity=bank, PAV, -1666). This represents a decrease in bank availability against the sample set in Singapore. Ticket link: No matching JIRA ticket found for this pattern.
+            
+            ---
+            **Example 3: PAV improvement with percentage**
+            
+            **India | POI | POI | Improved coverage of pharmacies in India by approximately 15%. | MPOI-7634 | Agent Analysis**
+            
+            - *Linking logic:* Exact metric: IN (amenity=pharmacy, PAV, +15.2%). This represents a 15.2% improvement in pharmacy availability against the sample set. Ticket link: MPOI-7634 mentions India pharmacy data delivery.
+            
+            ---
+            **Example 4: SUP improvement (negative is good)**
+            
+            **Germany | POI | POI | Improved data freshness of grocery stores in Germany by removing obsolete listings. | MPOI-7200 | Agent Analysis**
+            
+            - *Linking logic:* Exact metric: DE (shop=grocery, SUP, -2572). This represents a decrease in superfluousness (fewer obsolete POIs), which is an improvement. Ticket link: MPOI-7200 mentions conflation improvements.
+            
+            ---
+            **Example 5: DUP improvement (negative is good)**
+            
+            **Canada | POI | POI | Improved de-duplication of furniture store POIs in Canada. | MPOI-8100 | Agent Analysis**
+            
+            - *Linking logic:* Exact metric: CA (shop=furniture, DUP, -800). This represents a decrease in the duplicate ratio, meaning fewer duplicate POIs in the system. Ticket link: MPOI-8100 mentions duplicate detection improvements.
+            
             ---
             
-            **NOTE:** The release note itself doesn't explain "why" because the JIRA ticket doesn't explicitly state it caused pharmacy improvements. If the JIRA said "pharmacy source delivery in Hong Kong", then you could add "through new source delivery" to the description.
+            **NOTE:** The release note itself doesn't explain "why" unless the JIRA ticket explicitly states the cause. If the JIRA said "pharmacy source delivery in Hong Kong", then you could add "through new source delivery" to the description.
             
             **WHY THIS FORMAT WORKS:**
             - ✅ Natural business language ("pharmacies" not "amenity=pharmacy")
-            - ✅ Clear magnitude ("~450 locations" not "PAV +11.07")
+            - ✅ Describes directional change without false POI count claims
             - ✅ States observable facts (WHAT happened, WHERE it happened)
+            - ✅ Only includes percentages when provided by the agent
             - ✅ No speculation about causes or ongoing investigations
             - ✅ Suitable for external customer release portal
-            - ✅ Technical details preserved in "Linking logic" for internal reference
+            - ✅ Technical metric details preserved in "Linking logic" for debugging/verification
+            - ✅ Accurately represents sample-based metrics without oversimplifying
 
             **FINAL STEP: STRUCTURED OUTPUT BY METRIC TYPE**
             After completing your APR analysis, organize release notes into SEPARATE SECTIONS by metric type:
