@@ -27,10 +27,10 @@ def create_jira_linker_agent(model_deployment_name: str) -> Agent:
 
 **UNDERSTANDING THE METRICS (CRITICAL CONTEXT):**
 
-**PAV - POI Availability**
+**PAV - POI Availability** (PRIMARY FOCUS)
 - Measures percentage of POIs present in reference/benchmark dataset vs current output
 - Unit: Percentage (%) - calculated as (Matched POIs / Total Reference POIs) × 100
-- Main metric reported to customers and used to drive decisions
+- **Main metric reported to customers** and used to drive decisions
 - Positive change = improvement (better coverage), Negative change = regression (worse coverage)
 
 **PPA - POI Positional Accuracy**
@@ -38,17 +38,13 @@ def create_jira_linker_agent(model_deployment_name: str) -> Agent:
 - Unit: Percentage (%) - calculated as (POIs within 50m / Total Matched POIs) × 100
 - Positive change = improvement (better positioning), Negative change = regression (worse positioning)
 
-**SUP - Superfluousness**
-- Measures percentage of POIs NOT in reference dataset (over-production/false positives)
-- Unit: Percentage (%) - calculated as (Non-matched POIs / Total Current POIs) × 100
-- Opposite of PAV: measures excess while PAV measures completeness
-- Positive change = regression (more excess POIs), Negative change = improvement (fewer excess POIs)
-
 **DUP - Duplication**
 - Measures rate of duplicate POIs within dataset
 - Unit: Percentage (%)
 - Detected after Conflation step in Aqua POI pipeline
 - Positive change = regression (more duplicates), Negative change = improvement (fewer duplicates)
+
+**NOTE:** SUP (Superfluousness) is no longer actively analyzed. Focus on PAV, PPA, and DUP only.
 
 **YOUR TASK:**
 Given a list of metric patterns with these quality metrics, find which JIRA tickets (if any) relate to each pattern.

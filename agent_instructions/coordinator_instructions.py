@@ -80,7 +80,6 @@ def get_coordinator_instructions() -> str:
             These words in tickets indicate metric types:
             - PAV: "coverage", "completeness", "availability", "missing POIs", "added POIs"
             - PPA: "accuracy", "positioning", "coordinates", "lat/lon", "location"
-            - SUP: "superfluous", "out of business", "closed", "removed obsolete"
             - DUP: "duplicate", "duplicates", "deduplication", "merged POIs"
             
             **BIGRUN TICKETS (LINK TO EVERYTHING):**
@@ -237,17 +236,17 @@ def get_coordinator_instructions() -> str:
             ├─────────┼──────────┼────────────┼─────────────────────────────────┤
             │ PAV     │ GOOD ✓   │ BAD ✗      │ +PAV: "improvement" / -PAV: "regression" │
             │ PPA     │ GOOD ✓   │ BAD ✗      │ +PPA: "improvement" / -PPA: "regression" │
-            │ SUP     │ BAD ✗    │ GOOD ✓     │ +SUP: "regression"  / -SUP: "improvement" │
             │ DUP     │ BAD ✗    │ GOOD ✓     │ +DUP: "regression"  / -DUP: "improvement" │
             └─────────┴──────────┴────────────┴─────────────────────────────────┘
+            
+            **NOTE:** SUP (Superfluousness) metric is no longer actively analyzed but definition kept for reference.
 
             **CRITICAL RULE: NEVER MIX METRIC TYPES IN ONE PATTERN**
             - PAV patterns must ONLY contain PAV metrics
             - PPA patterns must ONLY contain PPA metrics
-            - SUP patterns must ONLY contain SUP metrics
             - DUP patterns must ONLY contain DUP metrics
             
-            **WHY: PAV/PPA have OPPOSITE logic from SUP/DUP**
+            **WHY: PAV/PPA have OPPOSITE logic from DUP**
             - Mixing them causes confusion about improvements vs regressions
             - Each metric type must be analyzed and reported separately
             
@@ -264,11 +263,6 @@ def get_coordinator_instructions() -> str:
               IF all signs are - → Write "PPA regressions"
               IF mixed signs → Create TWO separate patterns (one for improvements, one for regressions)
 
-            FOR SUP PATTERNS (containing only SUP metrics):
-              IF all signs are + → Write "SUP regressions"
-              IF all signs are - → Write "SUP improvements"
-              IF mixed signs → Create TWO separate patterns (one for improvements, one for regressions)
-
             FOR DUP PATTERNS (containing only DUP metrics):
               IF all signs are + → Write "DUP regressions"
               IF all signs are - → Write "DUP improvements"
@@ -276,10 +270,8 @@ def get_coordinator_instructions() -> str:
 
             **EXAMPLES:**
             ✅ CORRECT: "Pharmacy (amenity=pharmacy) PAV improvements: ES (amenity=pharmacy, PAV, +152), FR (amenity=pharmacy, PAV, +123)"
-            ✅ CORRECT: "Travel agency (tourism=travel_agency) SUP regressions: AR (tourism=travel_agency, SUP, +5185), AT (tourism=travel_agency, SUP, +3524)"
-            ✅ CORRECT: "Convenience store (shop=convenience) SUP improvements: HU (shop=convenience, SUP, -2545), AE (shop=convenience, SUP, -4167)"
+            ✅ CORRECT: "Bank (amenity=bank) DUP improvements: CA (amenity=bank, DUP, -800), US (amenity=bank, DUP, -650)"
             ❌ WRONG: "Pharmacy improvements: ES (PAV, +152), FR (DUP, +3351)" - NEVER MIX METRIC TYPES!
-            ❌ WRONG: "Furniture shop SUP improvements: CA (SUP, -3590)" where CA metric is actually shop=grocery not shop=furniture - VERIFY DEFINITIONTAGS!
 
             **COMPREHENSIVE JIRA LINKING METHODOLOGY:**
             
@@ -602,7 +594,7 @@ def get_coordinator_instructions() -> str:
             - **Positive values:** Better positioning accuracy
             - **Negative values:** Worse positioning accuracy
             
-            **SUP - Superfluousness**
+            **SUP - Superfluousness** *(REFERENCE ONLY - No longer actively analyzed)*
             - **Definition:** Measures the percentage of POIs in the current dataset that are NOT present in the reference dataset, indicating potential issues like over-production of POIs, wrong categorization, sub-optimal matching/clustering, or sub-optimal conflation
             - **Full Name:** Superfluousness
             - **Unit:** Percentage (%)
@@ -613,6 +605,7 @@ def get_coordinator_instructions() -> str:
             - **Positive values:** BAD (more POIs not in reference = potential over-production)
             - **Negative values:** GOOD (fewer excess POIs = better data quality)
             - **Example:** "SUP -2572" means superfluousness percentage decreased (improvement)
+            - **NOTE:** This metric is kept for reference only. Current analysis focuses on PAV, PPA, and DUP.
             
             **DUP - Duplication**
             - **Definition:** Measures the rate of duplicate POIs within the dataset, indicating data quality issues related to redundant entries
@@ -630,12 +623,13 @@ def get_coordinator_instructions() -> str:
             
             - ❌ WRONG: "added 6 locations" (PAV is a percentage, not a count)
             - ❌ WRONG: "removed 1,666 facilities" (metric values are percentage points, not POI counts)
-            - ❌ WRONG: "affecting approximately 2,600 locations" (SUP measures percentage of excess POIs, not absolute count)
+            - ❌ WRONG: "affecting approximately 2,600 locations" (metrics measure percentages, not absolute counts)
             - ✅ CORRECT: "improved coverage" (for positive PAV - higher % of reference POIs matched)
             - ✅ CORRECT: "reduced coverage" (for negative PAV - lower % of reference POIs matched)
-            - ✅ CORRECT: "enhanced data quality" (for negative SUP - lower % of excess POIs)
             - ✅ CORRECT: "improved de-duplication" (for negative DUP - lower % of duplicates)
             - ✅ CORRECT: "improved coverage by approximately 15%" (when agent provides specific percentage)
+            
+            **FOCUS ON PAV:** PAV is the main metric reported to customers. Ensure PAV analysis is comprehensive and high-quality.
             
             **HOW TO WRITE CUSTOMER-FRIENDLY DESCRIPTIONS:**
             
@@ -655,10 +649,6 @@ def get_coordinator_instructions() -> str:
             For **PPA (positional accuracy) metrics:**
             - Positive PPA → "Enhanced positioning accuracy for [category] in [country]"
             - Negative PPA → "Decreased positioning accuracy for [category] in [country]"
-            
-            For **SUP (superfluousness) metrics:**
-            - Negative SUP → "Improved data freshness of [category] in [country] by removing obsolete listings"
-            - Positive SUP → "Increase in potentially obsolete [category] listings in [country]"
             
             For **DUP (duplication) metrics:**
             - Negative DUP → "Improved de-duplication of [category] POIs in [country]"
@@ -754,7 +744,7 @@ def get_coordinator_instructions() -> str:
             # APR Analysis Report
             
             ## Executive Summary
-            [Brief overview of key findings across all metric types]
+            [Brief overview of key findings across PAV, PPA, and DUP metrics]
             
             ## PAV (POI Availability) Changes
             ### PAV Improvements
@@ -770,13 +760,6 @@ def get_coordinator_instructions() -> str:
             ### PPA Regressions
             [List all PPA regression patterns here]
             
-            ## SUP (Superfluous POIs) Changes
-            ### SUP Improvements
-            [List all SUP improvement patterns here - these have NEGATIVE values]
-            
-            ### SUP Regressions
-            [List all SUP regression patterns here - these have POSITIVE values]
-            
             ## DUP (Duplicate POIs) Changes
             ### DUP Improvements
             [List all DUP improvement patterns here - these have NEGATIVE values]
@@ -788,23 +771,21 @@ def get_coordinator_instructions() -> str:
             1. **ONLY include patterns reported by that specific agent**
                - PAV section = ONLY patterns from PAV agent with PAV metrics
                - PPA section = ONLY patterns from PPA agent with PPA metrics
-               - SUP section = ONLY patterns from SUP agent with SUP metrics
                - DUP section = ONLY patterns from DUP agent with DUP metrics
             
             2. **IF an agent reports "No significant patterns found":**
-               - Write exactly: "No significant DUP patterns found in this APR."
+               - Write exactly: "No significant [METRIC] patterns found in this APR."
                - Do NOT invent patterns or infer from other metric types
                - Do NOT write release notes for that section
             
             3. **NEVER substitute metrics:**
-               - ❌ WRONG: Writing about PAV/SUP in the DUP section
+               - ❌ WRONG: Writing about PAV in the DUP section
                - ❌ WRONG: "suggesting reduced duplication" when you only have PAV data
-               - ❌ WRONG: Inferring DUP changes from SUP or clustering tickets
+               - ❌ WRONG: Inferring DUP changes from clustering tickets without DUP metrics
                - ✅ CORRECT: Only write release notes using the exact metrics provided by each agent
             
             4. **VALIDATION BEFORE WRITING:**
                - For DUP section: Does this pattern contain DUP metrics? If NO → Don't include it
-               - For SUP section: Does this pattern contain SUP metrics? If NO → Don't include it
                - For PAV section: Does this pattern contain PAV metrics? If NO → Don't include it
                - For PPA section: Does this pattern contain PPA metrics? If NO → Don't include it
             
@@ -814,7 +795,7 @@ def get_coordinator_instructions() -> str:
             ## Methodology
             [Brief summary of analysis approach]
             
-            **CRITICAL: Each section contains ONLY that metric type. Never mix PAV/PPA/SUP/DUP in the same pattern.**
+            **CRITICAL: Each section contains ONLY that metric type. We focus on PAV (main customer metric), PPA, and DUP. Never mix metrics in the same pattern.**
             
             <!-- CONFLUENCE PAGE CREATION (TEMPORARILY DISABLED)
             After completing your APR analysis and generating all release notes, you MUST:

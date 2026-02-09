@@ -10,14 +10,14 @@ import time
 from typing import Dict, List
 from azure.ai.agents.models import MessageRole
 
-from agents import create_pav_agent, create_ppa_agent, create_sup_agent, create_dup_agent, create_coordinator_agent, create_jira_linker_agent
+from agents import create_pav_agent, create_ppa_agent, create_dup_agent, create_coordinator_agent, create_jira_linker_agent
 from agent_tools import (
     get_jira_ticket_description, get_pull_request_body, get_pull_request_title,
     get_control_plan_metrics_from_pr_comment, get_jira_ticket_title, 
     get_jira_ticket_release_notes, get_jira_ticket_xlsx_attachment, 
     get_jira_ticket_attachments, get_PRs_from_apr, get_feature_rankings,
     get_pav_metrics_for_apr, get_ppa_metrics_for_apr, 
-    get_sup_metrics_for_apr, get_dup_metrics_for_apr, create_confluence_page
+    get_dup_metrics_for_apr, create_confluence_page
 )
 
 
@@ -46,7 +46,6 @@ class APROrchestrator:
         self.agent_instances = {
             'pav': create_pav_agent(model_deployment_name),
             'ppa': create_ppa_agent(model_deployment_name),
-            'sup': create_sup_agent(model_deployment_name),
             'dup': create_dup_agent(model_deployment_name),
             'jira_linker': create_jira_linker_agent(model_deployment_name),
             'coordinator': create_coordinator_agent(model_deployment_name)
@@ -99,7 +98,7 @@ class APROrchestrator:
         
         Args:
             apr_number: APR number to analyze
-            agent_type: Type of agent (pav, ppa, sup, dup)
+            agent_type: Type of agent (pav, ppa, dup)
             retries: Number of retry attempts
             
         Returns:
@@ -163,7 +162,7 @@ class APROrchestrator:
         
         Args:
             apr_number: APR number to analyze
-            metric_results: Dictionary of metric agent results (pav, ppa, sup, dup)
+            metric_results: Dictionary of metric agent results (pav, ppa, dup)
             retries: Number of retry attempts
             
         Returns:
@@ -180,9 +179,6 @@ PAV PATTERNS:
 
 PPA PATTERNS:
 {metric_results['ppa']}
-
-SUP PATTERNS:
-{metric_results['sup']}
 
 DUP PATTERNS:
 {metric_results['dup']}
@@ -259,15 +255,14 @@ Please find JIRA tickets that match these patterns."""
                     return "No linkages found"
     
     def create_final_report(self, apr_number: str, pav_result: str, ppa_result: str, 
-                           sup_result: str, dup_result: str, jira_linkages: str = "", retries: int = 2) -> str:
+                           dup_result: str, jira_linkages: str = "", retries: int = 2) -> str:
         """
         Use coordinator agent to create final comprehensive report.
         
         Args:
             apr_number: APR number being analyzed
             pav_result: PAV analysis result
-            ppa_result: PPA analysis result  
-            sup_result: SUP analysis result
+            ppa_result: PPA analysis result
             dup_result: DUP analysis result
             jira_linkages: JIRA ticket linkage mappings from linker agent
             retries: Number of retry attempts
@@ -295,9 +290,6 @@ PAV AGENT ANALYSIS:
 
 PPA AGENT ANALYSIS:
 {ppa_result}
-
-SUP AGENT ANALYSIS:
-{sup_result}
 
 DUP AGENT ANALYSIS:
 {dup_result}
@@ -361,9 +353,9 @@ Please create your comprehensive analysis following your instructions. Use the J
         print(f"\n🚀 Starting comprehensive APR {apr_number} analysis...")
         print("=" * 60)
         
-        # Run all metric analyses
+        # Run all metric analyses (focusing on PAV, PPA, DUP only)
         results = {}
-        metric_agents = ['pav', 'ppa', 'sup', 'dup']
+        metric_agents = ['pav', 'ppa', 'dup']
         
         for agent_type in metric_agents:
             results[agent_type] = self.run_metric_analysis(apr_number, agent_type)
@@ -377,7 +369,6 @@ Please create your comprehensive analysis following your instructions. Use the J
             apr_number, 
             results['pav'], 
             results['ppa'],
-            results['sup'], 
             results['dup'],
             jira_linkages
         )
