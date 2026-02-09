@@ -191,14 +191,23 @@ def get_coordinator_instructions() -> str:
             - After each customer-facing release note, include a "Linking logic" section in italics
             - This section contains technical details for internal reference (not for customers)
             - You MUST include the EXACT metric from the agent (e.g., "amenity=pharmacy, PAV +11.07")
+            - You MUST include the COUNT DATA from the agent (e.g., "ref=6303, actual=12586, +100%")
+            - You MUST explain WHY this pattern was flagged (metric change, count change, or both)
             - This is where the TECHNICAL metric details go - the customer description should NOT include raw metric values
-            - Format: *Linking logic: Exact metric: [country (definitiontag, metric_type, value)]. Ticket link: [explanation]*
+            - Format: *Linking logic: Exact metric: [country (definitiontag, metric_type, value, ref→actual, change%)]. Flagged for: [reason]. Count analysis: [interpretation]. Ticket link: [explanation]*
             
             **EXAMPLE WITH INTERNAL NOTES:**
             ```
             India | POI | POI | Improved coverage of pharmacies in India through new source ingestion. | MPOI-7634 | Agent Analysis
             
-            - *Linking logic:* Exact metric: IN (amenity=pharmacy, PAV, +11.07). This represents an improvement in the availability metric for pharmacy POIs against the sample set. Ticket link: MPOI-7634 mentions India pharmacy data delivery.
+            - *Linking logic:* Exact metric: IN (amenity=pharmacy, PAV, +11.07, 8500→12800, +51%). Flagged for: Both metric and count changes. Count analysis: Metric improved 11 percentage points AND raw count increased by 51% (4,300 additional POIs), indicating substantial data expansion with quality improvement. Ticket link: MPOI-7634 mentions India pharmacy data delivery.
+            ```
+            
+            **EXAMPLE WITH COUNT-DRIVEN PATTERN:**
+            ```
+            Norway | POI | POI | Expanded coverage of parking facilities in Norway, with POI count increasing significantly while maintaining quality. | MPOI-7200 | Agent Analysis
+            
+            - *Linking logic:* Exact metric: NO (amenity=parking, PAV, +0.37, 6303→12586, +100%). Flagged for: Significant count change. Count analysis: Metric barely changed (+0.37 points) but raw count DOUBLED (100% increase, 6,283 additional POIs). This pattern was flagged primarily due to the dramatic count expansion, not metric change. Quality remained stable during data expansion. Ticket link: MPOI-7200 mentions Norway parking data delivery.
             ```
             
             **CRITICAL: DEFINITIONTAG HANDLING - EXACT MATCHES ONLY**
@@ -220,12 +229,13 @@ def get_coordinator_instructions() -> str:
                - ❌ REJECT: Mixing CA (shop=furniture) with ES (shop=grocery)
             
             **MANDATORY METRIC FORMAT IN RELEASE NOTES:**
-            EVERY metric you write MUST include the FULL definitiontag:
-            - Format: "Country (definitiontag, metric_type, value)"
-            - Example: "CA (shop=furniture, SUP, -3590)"
-            - Example: "ES (amenity=pharmacy, PAV, +1230)"
+            EVERY metric you write MUST include the FULL definitiontag AND count data:
+            - Format: "Country (definitiontag, metric_type, value, ref→actual, change%)"
+            - Example: "CA (shop=furniture, DUP, -35.90, 12500→8910, -29%)"
+            - Example: "ES (amenity=pharmacy, PAV, +12.30, 8500→12800, +51%)"
+            - Example: "NO (amenity=parking, PAV, +0.37, 6303→12586, +100%)"
             
-            **CRITICAL:** If an agent reports "CA (SUP, -35.9%)" for "Furniture shop" but you check and see this is actually for "shop=grocery", DO NOT include it in the furniture pattern. The agent made an error - each definitiontag must be treated separately.
+            **CRITICAL:** Metric agents will provide ALL this data. If the format is missing count data, the agent made an error - request the complete format with count information for proper analysis.
             
             *CRITICAL*: Please include the metric in its entirety! I want country/definition tag combination, metric type, and the value of the metric change. You explain the pattern broadly, listing countries or definitiontags
             affected but if you mention a country of definitiontag affected in your broader pattern description, you MUST include the exact metric from the agent that shows that country/definitiontag was affected.
@@ -617,19 +627,59 @@ def get_coordinator_instructions() -> str:
             - **Negative values:** GOOD (lower duplicate rate = better de-duplication)
             - **Example:** "DUP -800" means duplication rate decreased (fewer duplicates)
             
-            **CRITICAL RULE: DO NOT CLAIM RAW POI COUNTS**
+            **CRITICAL RULE: UNDERSTAND METRICS VS RAW COUNTS**
             
-            These metrics are PERCENTAGES measuring quality against reference/benchmark datasets, NOT raw POI counts:
+            **Metric agents now provide TWO types of data:**
+            1. **Metric percentage changes** (PAV, PPA, DUP) - quality measurements against reference datasets
+            2. **Raw POI count changes** (reference_count, actual_count, count_change_percent, count_change_absolute)
             
-            - ❌ WRONG: "added 6 locations" (PAV is a percentage, not a count)
-            - ❌ WRONG: "removed 1,666 facilities" (metric values are percentage points, not POI counts)
-            - ❌ WRONG: "affecting approximately 2,600 locations" (metrics measure percentages, not absolute counts)
-            - ✅ CORRECT: "improved coverage" (for positive PAV - higher % of reference POIs matched)
-            - ✅ CORRECT: "reduced coverage" (for negative PAV - lower % of reference POIs matched)
-            - ✅ CORRECT: "improved de-duplication" (for negative DUP - lower % of duplicates)
-            - ✅ CORRECT: "improved coverage by approximately 15%" (when agent provides specific percentage)
+            **WHEN metric data shows:**
+            - `diff_absolute`: The change in the quality metric (percentage points)
+            - `reference_count`: Number of POIs in the reference/benchmark dataset
+            - `actual_count`: Number of POIs in the current pipeline output
+            - `count_change_percent`: Percentage change in raw POI counts (e.g., 100% means POIs doubled)
+            - `count_change_absolute`: Absolute change in POI count (e.g., +6000 means 6000 more POIs)
             
-            **FOCUS ON PAV:** PAV is the main metric reported to customers. Ensure PAV analysis is comprehensive and high-quality.
+            **HOW TO INTERPRET BOTH TOGETHER:**
+            
+            **Scenario 1: Metric changed significantly, count stable**
+            - Example: PAV drops -12 points, but count only changed by 100 POIs
+            - Meaning: Quality degraded (more misses/errors) without major count change
+            - Release note: "Reduced coverage of [category] in [country]" (focus on quality)
+            
+            **Scenario 2: Count changed significantly, metric stable**
+            - Example: Count doubled from 6,000 to 12,000 (+100%), but PAV only changed +0.37 points
+            - Meaning: Major data expansion/contraction with quality staying consistent
+            - Release note: "Expanded coverage of [category] in [country], with POI count increasing significantly while maintaining quality" (mention both)
+            
+            **Scenario 3: Both metric and count changed significantly**
+            - Example: PAV improved +8 points AND count increased +3000 POIs (+50%)
+            - Meaning: Both quality and quantity improved
+            - Release note: "Substantially improved coverage of [category] in [country] through data expansion" (emphasize the improvement)
+            
+            **RULES FOR MENTIONING COUNTS IN RELEASE NOTES:**
+            
+            ✅ **DO mention raw count changes when:**
+            - Count change is >50% AND base count is >500 POIs (significant percentage of meaningful data)
+            - OR absolute count change is >1000 POIs (significant absolute impact)
+            - Use phrases like: "with POI count increasing/decreasing significantly", "through substantial data expansion/reduction"
+            
+            ❌ **DO NOT mention raw counts when:**
+            - Only the metric changed (focus on quality change only)
+            - Count changes are small (<500 POIs AND <30% change)
+            - Metric values (diff_absolute) are NOT raw counts - they're percentage point changes
+            
+            **CUSTOMER-FRIENDLY PHRASING FOR COUNT CHANGES:**
+            - ✅ "Expanded coverage... with POI count increasing significantly"
+            - ✅ "Reduced coverage... through data consolidation" (when counts dropped intentionally)
+            - ✅ "Substantially improved coverage through data expansion"
+            - ❌ "Added 6,283 POIs" (too precise, sounds like we know exact additions)
+            - ❌ "Count doubled to 12,586 locations" (too technical)
+            
+            **FOCUS ON PAV:** 
+            - PAV is the main metric reported to customers - ensure PAV analysis is comprehensive and high-quality
+            - With the new count tracking, PAV patterns now capture BOTH quality changes AND quantity changes
+            - This means you should see more PAV patterns, especially for significant data expansions/reductions
             
             **HOW TO WRITE CUSTOMER-FRIENDLY DESCRIPTIONS:**
             
@@ -659,26 +709,29 @@ def get_coordinator_instructions() -> str:
             - IF JIRA says "conflation improvements" → add "as a result of data quality improvements"
             - Otherwise, just state the directional change
             
-            **CRITICAL RULE: INCLUDE EXACT METRICS IN LINKING LOGIC FOR DEBUGGING**
-            - In the "Linking logic" section, write: "Exact metric: [country (definitiontag, metric_type, value)]"
-            - Then explain what the metric represents (sample-based improvement/regression)
+            **CRITICAL RULE: INCLUDE EXACT METRICS AND COUNT DATA IN LINKING LOGIC FOR DEBUGGING**
+            - In the "Linking logic" section, write: "Exact metric: [country (definitiontag, metric_type, value, ref→actual, change%)]"
+            - Then explain what BOTH the metric AND count data represent
+            - Specify WHY the pattern was flagged (metric change, count change, or both)
             - Then link to JIRA ticket if applicable
             
             **EXAMPLES OF CORRECT LINKING LOGIC:**
-            - "Exact metric: NO (amenity=pharmacy, PAV, +6). This represents an improvement in pharmacy availability against the sample set in Norway."
-            - "Exact metric: SG (amenity=bank, PAV, -1666). This represents a decrease in bank availability against the sample set in Singapore."
-            - "Exact metric: DE (shop=grocery, SUP, -2572). This represents a decrease in superfluousness (improvement) for grocery stores in Germany."
+            - "Exact metric: NO (amenity=pharmacy, PAV, +6.00, 8200→9500, +16%). Flagged for: Both metric and count changes. This represents a 6-point PAV improvement AND a 16% count increase in pharmacy POIs in Norway."
+            - "Exact metric: SG (amenity=bank, PAV, -16.66, 12000→11500, -4%). Flagged for: Metric change primarily. This represents a significant PAV regression (-16.66 points) with a modest count decrease (-4%) in Singapore banks."
+            - "Exact metric: NO (amenity=parking, PAV, +0.37, 6303→12586, +100%). Flagged for: Significant count change. This represents minimal PAV change but dramatic count doubling in Norway parking POIs."
+            - "Exact metric: DE (shop=grocery, DUP, -25.72, 18500→14200, -23%). Flagged for: Both metric and count changes. This represents a DUP improvement (-25.72 points) with corresponding count reduction in Germany groceries."
             
             **VALIDATION CHECKLIST - BEFORE WRITING ANY RELEASE NOTE:**
             1. ✅ Do I have the EXACT metric from the agent? (e.g., "NO (amenity=pharmacy, PAV, +6)")
-            2. ✅ Have I described the change directionally (improved/reduced coverage) without claiming raw POI counts?
-            3. ✅ If a percentage was provided, am I using only the percentage in the description?
-            4. ✅ If NO percentage was provided, am I avoiding specific numbers in the customer description?
-            5. ✅ Have I included "Exact metric:" in my Linking logic section?
-            6. ✅ Does my customer description focus on WHAT/WHERE/WHY without technical metric values?
-            7. ✅ Are the technical details (metric values) preserved ONLY in the Linking logic section?
+            2. ✅ Do I have the count data? (reference_count, actual_count, count_change_percent, count_change_absolute)
+            3. ✅ Did I check if the count change is significant (>50% AND base>500, OR absolute>1000)?
+            4. ✅ Have I described the change directionally without incorrectly claiming metric values are POI counts?
+            5. ✅ If count change is significant, did I mention it in customer-friendly terms?
+            6. ✅ Have I included both metric AND count data in my Linking logic section?
+            7. ✅ Does my customer description focus on WHAT/WHERE/WHY without technical details?
+            8. ✅ Are the technical details (exact metrics, counts) preserved in the Linking logic section?
             
-            **IF YOU CANNOT ANSWER YES TO ALL 7 QUESTIONS, DO NOT WRITE THE RELEASE NOTE. GO BACK AND GET THE EXACT METRIC.**
+            **IF YOU CANNOT ANSWER YES TO ALL 8 QUESTIONS, DO NOT WRITE THE RELEASE NOTE. GO BACK AND GET THE COMPLETE DATA.**
             
             **CAUSATION ONLY FROM JIRA:**
             - IF JIRA ticket says "new source delivery" → "through new source delivery" or "as a result of new source additions"
@@ -688,11 +741,25 @@ def get_coordinator_instructions() -> str:
             
             **PREFERRED RELEASE NOTE EXAMPLES WITH COMPLETE LINKING LOGIC:**
             ---
-            **Example 1: PAV improvement (no percentage given)**
+            **Example 1: Metric change with stable count**
             
             **Norway | POI | POI | Improved coverage of pharmacies in Norway. | MPOI-7159 | Agent Analysis**
             
-            - *Linking logic:* Exact metric: NO (amenity=pharmacy, PAV, +6). This represents an improvement in pharmacy availability against the sample set in Norway. Ticket link: MPOI-7159 title mentions "Geolytica category improvements" which aligns with pharmacy coverage increase.
+            - *Linking logic:* Exact metric: NO (amenity=pharmacy, PAV, +6). This represents an improvement in pharmacy availability against the sample set in Norway. Count data: reference=6,200, actual=6,300 (minimal change). Ticket link: MPOI-7159 title mentions "Geolytica category improvements" which aligns with pharmacy coverage increase.
+            
+            ---
+            **Example 2: Significant count change with stable metric**
+            
+            **Norway | POI | POI | Expanded coverage of parking facilities in Norway, with POI count increasing significantly while maintaining quality. | MPOI-7200 | Agent Analysis**
+            
+            - *Linking logic:* Exact metric: NO (amenity=parking, PAV, +0.37). This represents a minor improvement in parking availability. However, count data shows significant expansion: reference=6,303, actual=12,586 (100% increase, 6,283 additional POIs). The metric remained stable despite count doubling, indicating quality was maintained during data expansion. Ticket link: MPOI-7200 mentions "Norway data delivery expansion."
+            
+            ---
+            **Example 3: Both metric and count changed significantly**
+            
+            **India | POI | POI | Substantially improved coverage of pharmacies in India through data expansion. | MPOI-7634 | Agent Analysis**
+            
+            - *Linking logic:* Exact metric: IN (amenity=pharmacy, PAV, +12.5). This represents a significant improvement in pharmacy availability. Count data also shows expansion: reference=8,500, actual=12,800 (51% increase). Both quality metric and raw count improved substantially. Ticket link: MPOI-7634 mentions India pharmacy data delivery.
             
             ---
             **Example 2: PAV regression (no percentage given)**

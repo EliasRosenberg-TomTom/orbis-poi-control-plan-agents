@@ -6,12 +6,18 @@ def build_metric_agent_instructions(metric_type: str) -> str:
 WORKFLOW FOR APR ANALYSIS:
 1. **First call get_feature_rankings()** to get feature importance rankings
 2. **Call get_{metric.lower()}_metrics_for_apr()** to fetch {metric} metric data for a given world run.
-   - This returns columns: country, definitiontag, diff_absolute
-   - **USE diff_absolute (raw count change) for reporting** - this is the absolute numeric change
-   - **IMPORTANT**: The data is pre-filtered for statistical significance - only metrics with substantial sample sizes are included:
-     * PAV/PPA: At least 100 POIs in either reference or actual measurements
-     * SUP: At least 100 matched POIs in either reference or actual measurements
-     * DUP: Valid duplication ratios in both reference and actual measurements
+   - This returns columns: 
+     * **country** - ISO country code
+     * **definitiontag** - Complete category identifier (e.g., "amenity=pharmacy", "shop=furniture")
+     * **diff_absolute** - The metric change (percentage points for PAV/PPA/DUP)
+     * **reference_count** - Number of POIs in reference/benchmark dataset
+     * **actual_count** - Number of POIs in current pipeline output
+     * **count_change_percent** - Percentage change in raw POI counts (e.g., 100 = doubled)
+     * **count_change_absolute** - Absolute change in POI count (e.g., +6000 = 6000 more POIs)
+   - **IMPORTANT**: Data is pre-filtered to capture BOTH:
+     * Rows with significant METRIC changes (diff_absolute threshold)
+     * Rows with significant COUNT changes (>50% change OR >1000 POI change)
+   - **WHY BOTH?** Sometimes metric stays stable but POI count doubles (important!). Sometimes metric drops drastically but count barely changes (also important!).
    - This filtering ensures you're analyzing meaningful trends, not noise from low-sample-size fluctuations
 3. **Analyze and summarize the patterns** focusing on significant changes. Please look for changes that affect
     - multiple countries with the same definitiontag, or
@@ -60,7 +66,30 @@ EVERY metric you report MUST include the FULL definitiontag in the description:
 - Example: "CA (shop=furniture, {metric}, -1250)" 
 - Example: "ES (amenity=pharmacy, {metric}, +340)"
 
-*CRITICAL*: ALWAYS include the complete definitiontag (category_group=category) in your pattern descriptions so the coordinator knows EXACTLY which metrics you're referring to. Without the full definitiontag, the coordinator cannot verify your pattern is correct. 
+**CRITICAL: INCLUDE COUNT DATA IN YOUR REPORTS**
+For EACH metric you report, you MUST also include the count information:
+- Format: "Country (definitiontag, {metric}, metric_value, ref_count→actual_count, count_change%)"
+- Example: "NO (amenity=parking, {metric}, +0.37, 6303→12586, +100%)" 
+  - This shows: metric barely changed (+0.37) BUT count doubled (+100%)
+  - PRIMARY REASON for inclusion: significant count increase
+- Example: "SG (amenity=bank, {metric}, -12.5, 8200→8100, -1%)"
+  - This shows: metric dropped significantly (-12.5) but count barely changed (-1%)
+  - PRIMARY REASON for inclusion: significant metric degradation
+
+**WHY COUNT DATA MATTERS:**
+- Some patterns are flagged because of METRIC changes (quality/accuracy shifts)
+- Some patterns are flagged because of COUNT changes (data expansion/reduction)
+- The coordinator needs BOTH numbers to write accurate release notes
+- Without count data, the coordinator can't distinguish between these scenarios
+
+**EXAMPLE PATTERN WITH COUNT DATA:**
+✅ CORRECT: "Parking (amenity=parking) {metric} stability with data expansion: NO (amenity=parking, {metric}, +0.37, 6303→12586, +100%)"
+→ This clearly shows the count doubled even though metric barely changed
+
+❌ WRONG: "Parking (amenity=parking) {metric} improvements: NO (amenity=parking, {metric}, +0.37)"
+→ This hides the fact that count doubled, which is the real story
+
+*CRITICAL*: ALWAYS include the complete definitiontag (category_group=category) AND count data in your pattern descriptions so the coordinator knows EXACTLY which metrics you're referring to and WHY they were flagged. Without the full information, the coordinator cannot write accurate release notes. 
             **METRIC INTERPRETATION RULE TABLE - APPLY TO EVERY METRIC:**
             
             **CRITICAL: YOU ARE THE {metric} AGENT. YOU ONLY REPORT {metric} PATTERNS.**
@@ -123,8 +152,14 @@ LARGE DATASET HANDLING:
 OUTPUT FORMAT:
 - Focus exclusively on {metric} metrics
 - **DO NOT explain your workflow or what you plan to do - just execute and report patterns**
-- It is IMPERATIVE you include in your summary bullets the metric numbers you've used to find that pattern with their metric type (PAV, PPA, SUP, DUP). 
-- *CRITICAL*: Metrics, when referenced in your release note, should be of the format country (definitiontag, metric type, value), e.g. "US (amenity=bank, PAV, +1520)"
+- It is IMPERATIVE you include in your summary bullets the metric numbers AND count data you've used to find that pattern.
+- *CRITICAL*: Metrics, when referenced in your release note, should be of the format: 
+  **"Country (definitiontag, metric_type, metric_value, ref_count→actual_count, count_change%)"**
+  Example: "US (amenity=bank, PAV, +15.2, 8000→11000, +37.5%)"
+- **For each pattern, explicitly state WHY it was flagged:**
+  - "Flagged for: Significant metric change" (when diff_absolute is large)
+  - "Flagged for: Significant count change" (when count doubled/halved but metric stable)
+  - "Flagged for: Both metric and count changes" (when both changed significantly)
 - **Start your response with the patterns you found, NOT with "I will" or "Understood" or workflow descriptions**
 - Report patterns directly in bullet format without preamble
 """

@@ -62,7 +62,7 @@ class APROrchestrator:
             get_jira_ticket_release_notes, get_jira_ticket_xlsx_attachment, 
             get_jira_ticket_attachments, get_PRs_from_apr, get_feature_rankings,
             get_pav_metrics_for_apr, get_ppa_metrics_for_apr, 
-            get_sup_metrics_for_apr, get_dup_metrics_for_apr  # create_confluence_page
+            get_dup_metrics_for_apr  # create_confluence_page
         }
         self.agents_client.enable_auto_function_calls(all_tools)
     

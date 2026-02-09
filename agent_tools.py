@@ -157,33 +157,91 @@ def get_apr_metrics_for_given_metric_type(aprNumber: int, metricType: str) -> st
     return db.execute_sql(catalog, schema, statement)
 
 def get_pav_metrics_for_apr(aprNumber: int) -> str:
+    """Fetches PAV metrics with BOTH metric changes and raw count changes.
+    Captures rows where EITHER the metric changed significantly OR the raw POI count changed significantly."""
     db = DatabricksAPI()
     catalog = "pois_aqua_dev"
     schema = f"run_apr_{aprNumber}"
     table = "issue_list"
-    statement = f"""SELECT country, definitiontag, diff_absolute 
-        FROM {catalog}.{schema}.{table} 
-        WHERE validation_theme = 'pav' 
-        AND abs(diff_absolute) > 3
-        AND (pav_generics.reference_pav_available >= 100
-        OR pav_generics.actual_pav_available >= 100)
-        ORDER BY abs(diff_absolute) DESC 
-        LIMIT 1000"""
+    statement = f"""SELECT 
+        country, 
+        definitiontag, 
+        diff_absolute,
+        count_generics.reference_poi_count as reference_count,
+        count_generics.actual_poi_count as actual_count,
+        pav_generics.reference_pav_available,
+        pav_generics.actual_pav_available,
+        CASE 
+            WHEN count_generics.reference_poi_count > 0 
+            THEN ((count_generics.actual_poi_count - count_generics.reference_poi_count) / count_generics.reference_poi_count) * 100
+            ELSE 0 
+        END as count_change_percent,
+        (count_generics.actual_poi_count - count_generics.reference_poi_count) as count_change_absolute
+    FROM {catalog}.{schema}.{table} 
+    WHERE validation_theme = 'pav' 
+    AND (
+        -- Scenario 1: Significant metric change (existing logic)
+        (abs(diff_absolute) > 3 AND (pav_generics.reference_pav_available >= 100 OR pav_generics.actual_pav_available >= 100))
+        OR
+        -- Scenario 2: Significant count change (new logic)
+        ((
+            -- Large percentage change (>50% increase/decrease) with meaningful base count
+            (abs((count_generics.actual_poi_count - count_generics.reference_poi_count) / NULLIF(count_generics.reference_poi_count, 0)) > 0.5
+             AND count_generics.reference_poi_count >= 500)
+            OR
+            -- Large absolute count change (>1000 POIs) regardless of percentage
+            abs(count_generics.actual_poi_count - count_generics.reference_poi_count) > 1000
+        ) AND (count_generics.reference_poi_count >= 100 OR count_generics.actual_poi_count >= 100))
+    )
+    ORDER BY 
+        -- Prioritize by: 1) Large metric changes, 2) Large count changes
+        abs(diff_absolute) DESC, 
+        abs(count_generics.actual_poi_count - count_generics.reference_poi_count) DESC
+    LIMIT 1000"""
     return db.execute_sql(catalog, schema, statement)
 
 def get_ppa_metrics_for_apr(aprNumber: int) -> str:
+    """Fetches PPA metrics with BOTH metric changes and raw count changes.
+    Captures rows where EITHER the metric changed significantly OR the raw POI count changed significantly."""
     db = DatabricksAPI()
     catalog = "pois_aqua_dev"
     schema = f"run_apr_{aprNumber}"
     table = "issue_list"
-    statement = f"""SELECT country, definitiontag, diff_absolute 
-        FROM {catalog}.{schema}.{table} 
-        WHERE validation_theme = 'ppa' 
-        AND abs(diff_absolute) > 3
-        AND (ppa_generics.reference_ppa_accurate >= 100
-        OR ppa_generics.actual_ppa_available >= 100)
-        ORDER BY abs(diff_absolute) DESC 
-        LIMIT 1000"""
+    statement = f"""SELECT 
+        country, 
+        definitiontag, 
+        diff_absolute,
+        count_generics.reference_poi_count as reference_count,
+        count_generics.actual_poi_count as actual_count,
+        ppa_generics.reference_ppa_accurate,
+        ppa_generics.actual_ppa_available,
+        CASE 
+            WHEN count_generics.reference_poi_count > 0 
+            THEN ((count_generics.actual_poi_count - count_generics.reference_poi_count) / count_generics.reference_poi_count) * 100
+            ELSE 0 
+        END as count_change_percent,
+        (count_generics.actual_poi_count - count_generics.reference_poi_count) as count_change_absolute
+    FROM {catalog}.{schema}.{table} 
+    WHERE validation_theme = 'ppa' 
+    AND (
+        -- Scenario 1: Significant metric change (existing logic)
+        (abs(diff_absolute) > 3 AND (ppa_generics.reference_ppa_accurate >= 100 OR ppa_generics.actual_ppa_available >= 100))
+        OR
+        -- Scenario 2: Significant count change (new logic)
+        ((
+            -- Large percentage change (>50% increase/decrease) with meaningful base count
+            (abs((count_generics.actual_poi_count - count_generics.reference_poi_count) / NULLIF(count_generics.reference_poi_count, 0)) > 0.5
+             AND count_generics.reference_poi_count >= 500)
+            OR
+            -- Large absolute count change (>1000 POIs) regardless of percentage
+            abs(count_generics.actual_poi_count - count_generics.reference_poi_count) > 1000
+        ) AND (count_generics.reference_poi_count >= 100 OR count_generics.actual_poi_count >= 100))
+    )
+    ORDER BY 
+        -- Prioritize by: 1) Large metric changes, 2) Large count changes
+        abs(diff_absolute) DESC, 
+        abs(count_generics.actual_poi_count - count_generics.reference_poi_count) DESC
+    LIMIT 1000"""
     return db.execute_sql(catalog, schema, statement)
 
 def get_sup_metrics_for_apr(aprNumber: int) -> str:
@@ -202,16 +260,45 @@ def get_sup_metrics_for_apr(aprNumber: int) -> str:
     return db.execute_sql(catalog, schema, statement)
 
 def get_dup_metrics_for_apr(aprNumber: int) -> str:
+    """Fetches DUP metrics with BOTH metric changes and raw count changes.
+    Captures rows where EITHER the metric changed significantly OR the raw POI count changed significantly."""
     db = DatabricksAPI()
     catalog = "pois_aqua_dev"
     schema = f"run_apr_{aprNumber}"
     table = "issue_list"
-    statement = f"""SELECT country, definitiontag, diff_absolute 
-        FROM {catalog}.{schema}.{table} 
-        WHERE validation_theme = 'dup' 
-        AND abs(diff_absolute) > 30
-        ORDER BY abs(diff_absolute) DESC 
-        LIMIT 1000"""
+    statement = f"""SELECT 
+        country, 
+        definitiontag, 
+        diff_absolute,
+        count_generics.reference_poi_count as reference_count,
+        count_generics.actual_poi_count as actual_count,
+        CASE 
+            WHEN count_generics.reference_poi_count > 0 
+            THEN ((count_generics.actual_poi_count - count_generics.reference_poi_count) / count_generics.reference_poi_count) * 100
+            ELSE 0 
+        END as count_change_percent,
+        (count_generics.actual_poi_count - count_generics.reference_poi_count) as count_change_absolute
+    FROM {catalog}.{schema}.{table} 
+    WHERE validation_theme = 'dup' 
+    AND (
+        -- Scenario 1: Significant metric change (existing logic)
+        (abs(diff_absolute) > 30 AND (count_generics.actual_poi_count >= 271 OR count_generics.reference_poi_count >= 271))
+        OR
+        -- Scenario 2: Significant count change (new logic)
+        ((
+            -- Large percentage change (>50% increase/decrease) with meaningful base count
+            (abs((count_generics.actual_poi_count - count_generics.reference_poi_count) / NULLIF(count_generics.reference_poi_count, 0)) > 0.5
+             AND count_generics.reference_poi_count >= 500)
+            OR
+            -- Large absolute count change (>1000 POIs) regardless of percentage
+            abs(count_generics.actual_poi_count - count_generics.reference_poi_count) > 1000
+        ) AND (count_generics.reference_poi_count >= 100 OR count_generics.actual_poi_count >= 100))
+    )
+    ORDER BY 
+        -- Prioritize by: 1) Large metric changes, 2) Large count changes
+        abs(diff_absolute) DESC, 
+        abs(count_generics.actual_poi_count - count_generics.reference_poi_count) DESC
+    LIMIT 1000"""
     return db.execute_sql(catalog, schema, statement)
 
 def get_feature_rankings() -> str:
